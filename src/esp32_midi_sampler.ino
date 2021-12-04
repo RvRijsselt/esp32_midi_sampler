@@ -150,6 +150,8 @@ float *vuOutR;
 
 extern uint32_t sampleRecordCount;
 
+float *VuMeter_GetPtr(uint8_t index);
+
 /* this application starts here */
 void setup()
 {
@@ -159,6 +161,11 @@ void setup()
     Serial.begin(115200);
 
     Serial.println();
+
+    Serial.printf("Total heap: %d\n", ESP.getHeapSize());
+    Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
+    Serial.printf("Total PSRAM: %d\n", ESP.getPsramSize());
+    Serial.printf("Free PSRAM: %d\n\n", ESP.getFreePsram());
 
     Serial.printf("Firmware started successfully\n");
 

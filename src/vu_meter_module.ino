@@ -37,7 +37,7 @@
  * Credits for HSVtoRGB function is unknown
  */
 
-
+#include "config.h"
 
 #define VU_METER_COUNT  8
 

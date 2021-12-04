@@ -41,6 +41,8 @@
  * Author: Marcel Licence
  */
 
+#include "config.h"
+
 #ifdef __CDT_PARSER__
 #include <cdt.h>
 #endif
@@ -180,6 +182,8 @@ struct sample_player_s *beatPlayer = NULL;
 
 uint8_t sampler_lastCh = 0xFF;
 uint8_t sampler_lastNote = 0xFF;
+
+float *VuMeter_GetPtr(uint8_t index);
 
 void Sampler_Init(void)
 {

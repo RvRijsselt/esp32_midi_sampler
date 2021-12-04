@@ -61,7 +61,7 @@
 //#define MIDI_RX_PIN 22 /* U2RRXD */
 //#define MIDI_RX_PIN 19
 #define MIDI_RX_PIN 23 /* D5 LED will blink then */
-#define LED_STRIP_PIN         12
+//#define LED_STRIP_PIN         12
 
 #if ES8388_CFG_I2C==1
 #define ES8388_PIN_SDA  18
