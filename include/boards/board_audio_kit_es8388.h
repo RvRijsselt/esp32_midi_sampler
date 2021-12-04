@@ -57,6 +57,10 @@
 /* on board led */
 #define BLINK_LED_PIN     19 // IO19 -> D5
 
+/* headphone detection and power amp */
+#define GPIO_HP_DETECT    GPIO_NUM_39
+#define GPIO_PA_EN        GPIO_NUM_21
+
 
 //#define MIDI_RX_PIN 22 /* U2RRXD */
 //#define MIDI_RX_PIN 19

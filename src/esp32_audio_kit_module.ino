@@ -40,6 +40,7 @@
  * @see Schematic: https://docs.ai-thinker.com/_media/esp32-audio-kit_v2.2_sch.pdf
  */
 
+#include "config.h"
 
 #ifdef __CDT_PARSER__
 #include <cdt.h>
@@ -207,6 +208,10 @@ void button_setup()
     analogReadResolution(10);
     analogSetAttenuation(ADC_11db);
 #endif
+
+    // Enable amplifier
+    pinMode(GPIO_PA_EN, OUTPUT);
+    digitalWrite(GPIO_PA_EN, HIGH);
 }
 
 #ifdef AC101_ENABLED
