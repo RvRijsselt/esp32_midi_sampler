@@ -37,6 +37,8 @@
  * Author: Marcel Licence
  */
 
+#include "config.h"
+
 bool triggerTerminalOutput = true; /*!< necessary for usage without vt100 compliant terminal */
 
 char statusMsg[128] = "\0"; /*!< buffer for top line message */

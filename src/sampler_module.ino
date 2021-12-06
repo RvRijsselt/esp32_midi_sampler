@@ -591,7 +591,7 @@ void Sampler_RecordStop(void)
 
         struct sample_record_s *tempRec = lastActiveRec;
         lastActiveRec = &sampleRecords[sampleRecordCount - 1];
-        Sampler_NormalizeActiveRecording(0, 1);
+        //Sampler_NormalizeActiveRecording(0, 1);
         lastActiveRec = tempRec;
 
         if (sampler_recordDoneCb != NULL)

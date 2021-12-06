@@ -39,6 +39,7 @@
  * @see https://github.com/espressif/esp-adf/blob/master/components/audio_hal/driver/es8388/es8388.c
  */
 
+#include "config.h"
 
 #ifdef __CDT_PARSER__
 #include <cdt.h>
