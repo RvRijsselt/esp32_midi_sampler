@@ -110,11 +110,22 @@
 #include <Wire.h>
 #endif
 
+#include <Adafruit_ADS1X15.h>
+#include <Adafruit_MPR121.h>
+
+Adafruit_ADS1115 ads;
+Adafruit_MPR121 cap = Adafruit_MPR121();
+
+const float VPS = 4.096 / 32768.0; // volts per step
+uint16_t lasttouched = 0;
+uint16_t currtouched = 0;
+
+uint8_t lastCh = 1;
 
 /*
  * use this to activate auto loading
  */
-#define AUTO_LOAD_PATCHES_FROM_LITTLEFS
+//#define AUTO_LOAD_PATCHES_FROM_LITTLEFS
 //#define AUTO_LOAD_PATCHES_FROM_SD_MMC
 
 /*
@@ -168,6 +179,17 @@ void setup()
     Serial.printf("Free PSRAM: %d\n\n", ESP.getFreePsram());
 
     Serial.printf("Firmware started successfully\n");
+
+    ScanI2C();
+
+    if (!ads.begin()) {
+        Serial.println("Failed to initialize ADS.");
+        while (1);
+    }
+    if (!cap.begin(0x5B)) {
+        Serial.println("MPR121 not found, check wiring?");
+        while (1);
+    }
 
 #ifdef AS5600_ENABLED
     //  digitalWrite(TFT_CS, HIGH);
@@ -285,6 +307,18 @@ void Core0TaskSetup()
     VuMeter_Init();
 }
 
+
+float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+float roundf(float val, int dec) 
+{
+    auto m = pow(10, dec);
+    return (int)(val * m) / (float)m;
+}
+
 inline
 void Core0TaskLoop()
 {
@@ -298,6 +332,53 @@ void Core0TaskLoop()
 #ifdef DISPLAY_160x80_ENABLED
     Display_Draw();
 #endif
+
+    static float last0, last1, last2, last3;
+    auto adc0 = roundf(ads.readADC_SingleEnded(0) * VPS, 2);
+    auto adc1 = roundf(ads.readADC_SingleEnded(1) * VPS, 2);
+    auto adc2 = roundf(ads.readADC_SingleEnded(2) * VPS, 2);
+    auto adc3 = roundf(ads.readADC_SingleEnded(3) * VPS, 2);
+
+    if (adc0 != last0 || adc1 != last1 || adc2 != last2 || adc3 != last3) {
+        //Serial.printf("ADC: %f, %f, %f, %f\n", adc0, adc1, adc2, adc3);
+        last0 = adc0;
+        last1 = adc1;
+        last2 = adc2;
+        last3 = adc3;
+
+        Midi_PitchBend(0, mapfloat(adc2, 0.3, 2.3, 0, 16384));
+
+        //Synth_SetParam(9, mapfloat(adc3, 0.3, 2.3, 1, 0.0f));
+
+        //Synth_SetParam(4, mapfloat(adc0, 0.0, 2.3, 1.0, 0.0f));
+        //Synth_ModulationWheel(0, mapfloat(adc0, 0, 2.2, -1.0, 1.0));
+        ES8388_SetOUT1VOL(0,  mapfloat(adc1, 0, 2.2, 0, 1.0f)); 
+        ES8388_SetOUT2VOL(0,  mapfloat(adc1, 0, 2.2, 0, 1.0f));
+    }
+
+    int base = 69;   // a = recorded speed
+    //int base = 83;   // c 
+
+    // Get the currently touched pads
+    currtouched = cap.touched();
+    
+    for (uint8_t i=0; i<12; i++) {
+        // it if *is* touched and *wasnt* touched before, alert!
+        if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
+            //Serial.print(i); Serial.println(" touched");
+            Sampler_NoteOn(lastCh, base+i*2, 64);
+        }
+        // if it *was* touched and now *isnt*, alert!
+        if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
+            //Serial.print(i); Serial.println(" released");
+            Sampler_NoteOff(lastCh, base+i*2);
+        }
+    }
+
+    // reset our state
+    lasttouched = currtouched;
+
+    delay(20);
 }
 
 void Core0Task(void *parameter)
@@ -663,7 +744,6 @@ void App_ButtonCbPlaySample(uint8_t key, uint8_t down)
 
 #else
 
-uint8_t lastCh = 1;
 
 void App_ButtonCb(uint8_t key, uint8_t down)
 {
@@ -814,4 +894,60 @@ void App_SetBrightness(uint8_t unused, float value)
     Display_SetBacklight(value * 255.0f);
 #endif
     VuMeter_SetBrighness(unused, value / 8.0f);
+}
+
+
+/*
+ * Test functions
+ */
+
+void  ScanI2C(void)
+{
+
+    Wire.begin(I2C_SDA, I2C_SCL);
+
+    byte error, address;
+    int nDevices;
+
+    Serial.println("Scanning...");
+
+    nDevices = 0;
+    for (address = 1; address < 127; address++)
+    {
+        // The i2c_scanner uses the return value of
+        // the Write.endTransmisstion to see if
+        // a device did acknowledge to the address.
+        Wire.beginTransmission(address);
+        error = Wire.endTransmission();
+
+        if (error == 0)
+        {
+            Serial.print("I2C device found at address 0x");
+            if (address < 16)
+            {
+                Serial.print("0");
+            }
+            Serial.print(address, HEX);
+            Serial.println("  !");
+
+            nDevices++;
+        }
+        else if (error == 4)
+        {
+            Serial.print("Unknown error at address 0x");
+            if (address < 16)
+            {
+                Serial.print("0");
+            }
+            Serial.println(address, HEX);
+        }
+    }
+    if (nDevices == 0)
+    {
+        Serial.println("No I2C devices found\n");
+    }
+    else
+    {
+        Serial.println("done\n");
+    }
 }
