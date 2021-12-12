@@ -47,6 +47,8 @@ Thumbs.db
 *.flv
 *.mov
 *.wmv
+*.wav
+*.mp3
 
 /arduino_build
 /arduino_cache

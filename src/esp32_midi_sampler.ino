@@ -114,11 +114,15 @@
 #include <Adafruit_MPR121.h>
 
 Adafruit_ADS1115 ads;
+Adafruit_ADS1115 ads2;
 Adafruit_MPR121 cap = Adafruit_MPR121();
+Adafruit_MPR121 cap2 = Adafruit_MPR121();
 
 const float VPS = 4.096 / 32768.0; // volts per step
 uint16_t lasttouched = 0;
 uint16_t currtouched = 0;
+uint16_t lasttouched2 = 0;
+uint16_t currtouched2 = 0;
 
 uint8_t lastCh = 1;
 
@@ -126,7 +130,7 @@ uint8_t lastCh = 1;
  * use this to activate auto loading
  */
 //#define AUTO_LOAD_PATCHES_FROM_LITTLEFS
-//#define AUTO_LOAD_PATCHES_FROM_SD_MMC
+#define AUTO_LOAD_PATCHES_FROM_SD_MMC
 
 /*
  * you can activate this but be careful
@@ -182,14 +186,26 @@ void setup()
 
     ScanI2C();
 
-    if (!ads.begin()) {
+    if (!ads.begin(ADS1X15_ADDRESS)) {
         Serial.println("Failed to initialize ADS.");
         while (1);
     }
-    if (!cap.begin(0x5B)) {
+    if (!ads2.begin(ADS1X15_ADDRESS+1)) {
+        Serial.println("Failed to initialize ADS 2.");
+        while (1);
+    }
+    if (!cap.begin(MPR121_I2CADDR_DEFAULT)) {
         Serial.println("MPR121 not found, check wiring?");
         while (1);
     }
+    if (!cap2.begin(MPR121_I2CADDR_DEFAULT+1)) {
+        Serial.println("MPR121 not found, check wiring?");
+        while (1);
+    }
+
+    // Config ADS to read exact voltage.
+    ads.setGain(GAIN_ONE);
+    ads2.setGain(GAIN_ONE);
 
 #ifdef AS5600_ENABLED
     //  digitalWrite(TFT_CS, HIGH);
@@ -275,15 +291,15 @@ void setup()
     /* select sd card */
 #ifdef AUTO_LOAD_PATCHES_FROM_SD_MMC
     PatchManager_SetDestination(1, 1);
-    Sampler_LoadPatchFile("/samples/PlateDeep.wav");
-    Sampler_LoadPatchFile("/samples/76_Pure.wav");
+    Sampler_LoadPatchFile("/samples/pet_bottle.wav");
+    Sampler_LoadPatchFile("/samples/violin2.wav");
 #endif
 
     /* we need a second task for the terminal output */
     xTaskCreatePinnedToCore(Core0Task, "Core0Task", 8000, NULL, 999, &Core0TaskHnd, 0);
 
     /* use this to easily test the output */
-#if 1
+#if 0
     Sampler_NoteOn(0, 64, 1);
 #endif
 
@@ -310,13 +326,17 @@ void Core0TaskSetup()
 
 float mapfloat(float x, float in_min, float in_max, float out_min, float out_max)
 {
-  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+    x = min(max(x, in_min), in_max);
+    return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
 
-float roundf(float val, int dec) 
+bool isChanged(float first, float& second)
 {
-    auto m = pow(10, dec);
-    return (int)(val * m) / (float)m;
+    if (abs(first - second) > 0.02) {
+        second = first;
+        return true;
+    }
+    return false;
 }
 
 inline
@@ -333,52 +353,86 @@ void Core0TaskLoop()
     Display_Draw();
 #endif
 
-    static float last0, last1, last2, last3;
-    auto adc0 = roundf(ads.readADC_SingleEnded(0) * VPS, 2);
-    auto adc1 = roundf(ads.readADC_SingleEnded(1) * VPS, 2);
-    auto adc2 = roundf(ads.readADC_SingleEnded(2) * VPS, 2);
-    auto adc3 = roundf(ads.readADC_SingleEnded(3) * VPS, 2);
+    static float lastPots[8];
+    const float maxV = 3.2f;
+    
+    for (int p = 0; p < 4; ++p) {
+        auto pot1 = ads.readADC_SingleEnded(p) * VPS;
+        auto pot2 = ads2.readADC_SingleEnded(p) * VPS;
 
-    if (adc0 != last0 || adc1 != last1 || adc2 != last2 || adc3 != last3) {
-        //Serial.printf("ADC: %f, %f, %f, %f\n", adc0, adc1, adc2, adc3);
-        last0 = adc0;
-        last1 = adc1;
-        last2 = adc2;
-        last3 = adc3;
+        switch (p) {
+            case 0:
+                if (isChanged(pot1, lastPots[p])) {
+                    Midi_PitchBend(0, mapfloat(pot1, 1.0, maxV, 0, 16384));
+                }
+                if (isChanged(pot2, lastPots[p+4])) {
+                    Sampler_SetADSR_Release(0, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                }
+                break;
+            case 1:
+                if (isChanged(pot1, lastPots[p])) {
+                    Reverb_SetLevel(0, mapfloat(pot1, 1.0, maxV, 1.0f, 0.0f));
+                }
+                if (isChanged(pot2, lastPots[p+4])) {
+                    Sampler_SetADSR_Sustain(0, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                }
+                break;
+            case 2:
+                if (isChanged(pot1, lastPots[p])) {}
+                if (isChanged(pot2, lastPots[p+4])) {
+                    Sampler_SetADSR_Decay(0, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                }
+                break;
+            case 3:
+                if (isChanged(pot1, lastPots[p])) {
+                    auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
+                    ES8388_SetOUT1VOL(0,  val); 
+                    ES8388_SetOUT2VOL(0,  val);
+                    Status_ValueChangedFloat("volume", val);
+                }
+                if (isChanged(pot2, lastPots[p+4])) {
+                    Sampler_SetADSR_Attack(0, mapfloat(pot2, 0, maxV, 1, 0.0f));
+                }
+                break;
 
-        Midi_PitchBend(0, mapfloat(adc2, 0.3, 2.3, 0, 16384));
-
-        //Synth_SetParam(9, mapfloat(adc3, 0.3, 2.3, 1, 0.0f));
-
-        //Synth_SetParam(4, mapfloat(adc0, 0.0, 2.3, 1.0, 0.0f));
-        //Synth_ModulationWheel(0, mapfloat(adc0, 0, 2.2, -1.0, 1.0));
-        ES8388_SetOUT1VOL(0,  mapfloat(adc1, 0, 2.2, 0, 1.0f)); 
-        ES8388_SetOUT2VOL(0,  mapfloat(adc1, 0, 2.2, 0, 1.0f));
+        }
     }
+
+    //for (int p = 0; p < 4; ++p) {
+    //    Serial.printf("%.3f, ", lastPots[p]);
+    //}
+    //for (int p = 0; p < 4; ++p) {
+    //    Serial.printf("%.3f, ", lastPots[p+4]);
+    //}
+    //Serial.println();
+
 
     int base = 69;   // a = recorded speed
     //int base = 83;   // c 
 
     // Get the currently touched pads
     currtouched = cap.touched();
+    currtouched2 = cap2.touched();
     
     for (uint8_t i=0; i<12; i++) {
-        // it if *is* touched and *wasnt* touched before, alert!
         if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
-            //Serial.print(i); Serial.println(" touched");
-            Sampler_NoteOn(lastCh, base+i*2, 64);
+            Sampler_NoteOn(1, base+i*2, 1.0f);
         }
-        // if it *was* touched and now *isnt*, alert!
         if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
-            //Serial.print(i); Serial.println(" released");
-            Sampler_NoteOff(lastCh, base+i*2);
+            Sampler_NoteOff(1, base+i*2);
+        }
+        if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
+            Sampler_NoteOn(2, base+i*2, 1.0f);
+        }
+        if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
+            Sampler_NoteOff(2, base+i*2);
         }
     }
 
-    // reset our state
     lasttouched = currtouched;
+    lasttouched2 = currtouched2;
 
-    delay(20);
+    //delay(20);
 }
 
 void Core0Task(void *parameter)
