@@ -36,6 +36,7 @@
  * @brief  this file includes all required function to setup and drive the i2s interface
  */
 
+#include "config.h"
 
 #ifdef __CDT_PARSER__
 #include <cdt.h>
