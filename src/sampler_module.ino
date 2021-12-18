@@ -551,6 +551,16 @@ inline struct sample_player_s *Sampler_NoteOnInt(uint8_t ch, uint8_t note, float
     return freePlayer;
 }
 
+void Sampler_SelectRec(uint8_t ch)
+{
+    if (ch > sampleRecordCount) {
+        lastActiveRec = NULL;
+        return;
+    }
+    struct sample_record_s *rec = &sampleRecords[(ch - 1)]; /* decrease by one because we want to start with the first sample here */
+    lastActiveRec = rec;
+}
+
 void Sampler_NoteOn(uint8_t ch, uint8_t note, float vel)
 {
     if (sampleRecordCount == 0)
@@ -906,6 +916,7 @@ void Sampler_UpdateLoopRange(void)
         lastActiveRec->loop_start = loop_start_c + loop_start_f;
         lastActiveRec->loop_end = loop_len + lastActiveRec->loop_start;
         lastActiveRec->loop_start = min(lastActiveRec->loop_start, lastActiveRec->loop_end);
+        Serial.printf("Loop %.3f   %.3f   %.3f \r\n", loop_len, lastActiveRec->loop_start, lastActiveRec->loop_end);
     }
 }
 
@@ -1100,6 +1111,8 @@ void Sampler_LoadPatch(uint8_t unused, float value)
             lastIn = sampleStorageInPos;
             sampleStorageInPos += newSampleLen;
 
+            Serial.printf("Loaded sample %d %s\r\n", sampleRecordCount, newPatch->filename);
+            Serial.printf("  start %d %d\r\n", newPatch->start, newPatch->end);
             Status_ValueChangedInt("Loaded sample",  newPatch->end -  newPatch->start);
 
             /* select new recorded sample */
@@ -1114,6 +1127,7 @@ void Sampler_LoadPatch(uint8_t unused, float value)
 
 void Sampler_SetADSR_Attack(uint8_t not_used, float value)
 {
+    Sampler_SelectRec(not_used);
     if (lastActiveRec != NULL)
     {
         float attackInv = pow(2.0f, value * 4) - 1.0f;
@@ -1132,6 +1146,7 @@ void Sampler_SetADSR_Attack(uint8_t not_used, float value)
 
 void Sampler_SetADSR_Decay(uint8_t not_used, float value)
 {
+    Sampler_SelectRec(not_used);
     if (lastActiveRec != NULL)
     {
         lastActiveRec->decay = pow(value, 10.0f / 44100.0f); /* value controls the level after one tenth of a second */
@@ -1141,6 +1156,7 @@ void Sampler_SetADSR_Decay(uint8_t not_used, float value)
 
 void Sampler_SetADSR_Release(uint8_t not_used, float value)
 {
+    Sampler_SelectRec(not_used);
     if (lastActiveRec != NULL)
     {
         lastActiveRec->release = pow(value, 10.0f / 44100.0f); /* value controls the level after one tenth of a second */
@@ -1150,6 +1166,7 @@ void Sampler_SetADSR_Release(uint8_t not_used, float value)
 
 void Sampler_SetADSR_Sustain(uint8_t not_used, float value)
 {
+    Sampler_SelectRec(not_used);
     if (lastActiveRec != NULL)
     {
         lastActiveRec->sustain = value;
