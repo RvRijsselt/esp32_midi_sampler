@@ -73,6 +73,14 @@ void Status_Setup(void)
     }
 }
 
+void Status_Clear(void)
+{
+    // clear display
+    //Serial.printf("\e[2J");
+    for (int i = 0; i < 30; ++i)
+        Serial.printf("\r\n");
+}
+
 /*
  * function which prints the vu meter "line"
  */
@@ -127,28 +135,28 @@ void Status_PrintAll(void)
     char emptyLineLong[] = "                                                                ";
     Serial.printf("\033[?25l");
     Serial.printf("\033[%d;%dH", 0, 0);
-    //Serial.printf("--------------------------------\n");
-    Serial.printf("%s%s\n", statusMsg, &emptyLine[strlen(statusMsg)]);
-    Serial.printf("--------------------------------\n");
+    //Serial.printf("--------------------------------\r\n");
+    Serial.printf("%s%s\r\n", statusMsg, &emptyLine[strlen(statusMsg)]);
+    Serial.printf("--------------------------------\r\n");
 
     Serial.printf("inL    ");
     Status_PrintVu(vuInL, 8);
 
     Serial.printf("  outL   ");
     Status_PrintVu(vuOutL, 8);
-    Serial.printf("\n");
+    Serial.printf("\r\n");
 
     Serial.printf("inR    ");
     Status_PrintVu(vuInR, 8);
     Serial.printf("  outR   ");
     Status_PrintVu(vuOutR, 8);
-    Serial.printf("\n");
+    Serial.printf("\r\n");
 
 
-    Serial.printf("--------------------------------\n");
+    Serial.printf("--------------------------------\r\n");
     char memoryUsedMsg[64];
     sprintf(memoryUsedMsg, "%d of %d bytes used", sampleStorageInPos, sampleStorageLen);
-    Serial.printf("%s%s\n", memoryUsedMsg, &emptyLine[strlen(memoryUsedMsg)]);
+    Serial.printf("%s%s\r\n", memoryUsedMsg, &emptyLine[strlen(memoryUsedMsg)]);
 
     float relativeStorageUsage = ((float)sampleStorageInPos) / ((float)sampleStorageLen);
     for (int i = 0; i < 32; i++)
@@ -186,9 +194,9 @@ void Status_ShowButtonText()
 {
 
 
-    Serial.printf("\n--------------------------------\n");
-    Serial.printf("%s %s %s #####\n", key[0], key[2], key[4]);
-    Serial.printf("#### %s %s %s \n", key[1], key[3], key[5]);
+    Serial.printf("\r\n--------------------------------\r\n");
+    Serial.printf("%s %s %s #####\r\n", key[0], key[2], key[4]);
+    Serial.printf("#### %s %s %s \r\n", key[1], key[3], key[5]);
 }
 
 void Status_SetKeyText(uint8_t keyId, const char *text)
