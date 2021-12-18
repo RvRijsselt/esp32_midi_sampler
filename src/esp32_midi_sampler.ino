@@ -113,6 +113,10 @@
 #include <Adafruit_ADS1X15.h>
 #include <Adafruit_MPR121.h>
 
+#define PIN_KEY_1                   (21)
+#define PIN_KEY_2                   (22)
+#define PIN_KEY_3                   (19)
+
 Adafruit_ADS1115 ads;
 Adafruit_ADS1115 ads2;
 Adafruit_MPR121 cap = Adafruit_MPR121();
@@ -125,6 +129,8 @@ uint16_t lasttouched2 = 0;
 uint16_t currtouched2 = 0;
 
 uint8_t lastCh = 1;
+
+const int na = 0;
 
 /*
  * use this to activate auto loading
@@ -291,8 +297,8 @@ void setup()
     /* select sd card */
 #ifdef AUTO_LOAD_PATCHES_FROM_SD_MMC
     PatchManager_SetDestination(1, 1);
-    Sampler_LoadPatchFile("/samples/pet_bottle.wav");
     Sampler_LoadPatchFile("/samples/violin2.wav");
+    Sampler_LoadPatchFile("/samples/pet_bottle.wav");
 #endif
 
     /* we need a second task for the terminal output */
@@ -307,6 +313,25 @@ void setup()
     /* starts first loaded sample and activates this for scratching */
     Sampler_SetScratchSample(0, 1);
 #endif
+
+    pinMode(PIN_KEY_1, INPUT_PULLUP);
+    pinMode(PIN_KEY_2, INPUT_PULLUP);
+    pinMode(PIN_KEY_3, INPUT_PULLUP);
+
+    Sampler_SetADSR_Attack(1, 1.0f);
+    Sampler_SetADSR_Decay(1, 1.0f);
+    Sampler_SetADSR_Sustain(1, 1.0f);
+    Sampler_SetADSR_Release(1, 1.0f);
+    Sampler_LoopAll(1, 1);
+    Sampler_LoopRemove(1, 1);
+    Sampler_SetADSR_Attack(2, 1.0f);
+    Sampler_SetADSR_Decay(2, 1.0f);
+    Sampler_SetADSR_Sustain(2, 1.0f);
+    Sampler_SetADSR_Release(2, 1.0f);
+    //Sampler_LoopAll(1, 1);
+    //Sampler_LoopRemove(1, 1);
+    App_SetOutputLevel(0, 2.5f);
+    Status_Clear();
 }
 
 inline
@@ -332,27 +357,15 @@ float mapfloat(float x, float in_min, float in_max, float out_min, float out_max
 
 bool isChanged(float first, float& second)
 {
-    if (abs(first - second) > 0.02) {
+    if (abs(first - second) > 0.025) {
         second = first;
         return true;
     }
     return false;
 }
 
-inline
-void Core0TaskLoop()
+void Update_Pots()
 {
-    Status_Process();
-#ifndef AS5600_ENABLED /* does not work together */
-    VuMeter_Display();
-#endif
-#ifdef SCREEN_ENABLED
-    Screen_Loop();
-#endif
-#ifdef DISPLAY_160x80_ENABLED
-    Display_Draw();
-#endif
-
     static float lastPots[8];
     const float maxV = 3.2f;
     
@@ -366,7 +379,12 @@ void Core0TaskLoop()
                     Midi_PitchBend(0, mapfloat(pot1, 1.0, maxV, 0, 16384));
                 }
                 if (isChanged(pot2, lastPots[p+4])) {
-                    Sampler_SetADSR_Release(0, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
+                    //Sampler_SetADSR_Release(1, val);
+                    //Sampler_SetADSR_Release(2, val);
+
+                    Sampler_SelectRec(2);
+                    Sampler_LoopStartC(1, val);
                 }
                 break;
             case 1:
@@ -374,24 +392,43 @@ void Core0TaskLoop()
                     Reverb_SetLevel(0, mapfloat(pot1, 1.0, maxV, 1.0f, 0.0f));
                 }
                 if (isChanged(pot2, lastPots[p+4])) {
-                    Sampler_SetADSR_Sustain(0, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
+                    //Sampler_SetADSR_Sustain(1, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                    //Sampler_SetADSR_Sustain(2, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                    Sampler_SelectRec(2);
+                    Sampler_LoopStartF(1, val);
                 }
                 break;
             case 2:
-                if (isChanged(pot1, lastPots[p])) {}
+                if (isChanged(pot1, lastPots[p])) {
+                    auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
+                    //App_SetOutputLevel(0, val);
+                    //Status_ValueChangedFloat("volume 2", val);
+                    Sampler_SetLoopEndMultiplier(0, val);
+                }
                 if (isChanged(pot2, lastPots[p+4])) {
-                    Sampler_SetADSR_Decay(0, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
+                    //Sampler_SetADSR_Decay(1, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                    //Sampler_SetADSR_Decay(2, mapfloat(pot2, 0, maxV, 0, 1.0f));
+                    Sampler_SelectRec(2);
+                    Sampler_LoopEndC(1, val);
                 }
                 break;
             case 3:
                 if (isChanged(pot1, lastPots[p])) {
-                    auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
-                    ES8388_SetOUT1VOL(0,  val); 
-                    ES8388_SetOUT2VOL(0,  val);
-                    Status_ValueChangedFloat("volume", val);
+                    auto val = mapfloat(pot1, 0, maxV, 0, 1.2f); 
+                    //ES8388_SetOUT1VOL(0,  val); 
+                    //Status_ValueChangedFloat("volume 1", val);
+                    Sampler_SelectRec(2);
+                    Sampler_SetPitch(2, val);
                 }
                 if (isChanged(pot2, lastPots[p+4])) {
-                    Sampler_SetADSR_Attack(0, mapfloat(pot2, 0, maxV, 1, 0.0f));
+                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
+                    //Sampler_SetADSR_Attack(1, val);
+                    //Sampler_SetADSR_Attack(2, val);
+                    Sampler_SelectRec(2);
+                    Sampler_LoopEndF(1, val);
+                    //Sampler_SetPitch(1, val);
                 }
                 break;
 
@@ -405,8 +442,10 @@ void Core0TaskLoop()
     //    Serial.printf("%.3f, ", lastPots[p+4]);
     //}
     //Serial.println();
+}
 
-
+void Read_Touches()
+{
     int base = 69;   // a = recorded speed
     //int base = 83;   // c 
 
@@ -433,6 +472,25 @@ void Core0TaskLoop()
     lasttouched2 = currtouched2;
 
     //delay(20);
+}
+
+
+inline
+void Core0TaskLoop()
+{
+    Status_Process();
+#ifndef AS5600_ENABLED /* does not work together */
+    VuMeter_Display();
+#endif
+#ifdef SCREEN_ENABLED
+    Screen_Loop();
+#endif
+#ifdef DISPLAY_160x80_ENABLED
+    Display_Draw();
+#endif
+
+    Update_Pots();
+    Read_Touches();
 }
 
 void Core0Task(void *parameter)
@@ -884,9 +942,13 @@ void App_ButtonCb(uint8_t key, uint8_t down)
             {
             case 1:
                 delay(250); /* to avoid recording the noise of the button */
+                Sampler_SelectRec(2);
+                Sampler_RemoveActiveRecording(na, 1);
                 Sampler_RecordWait(0, down);
                 break;
             case 2:
+                Sampler_SelectRec(2);
+                Sampler_RemoveActiveRecording(na, 1);
                 Sampler_Record(0, down);
                 break;
             case 3:
@@ -930,6 +992,8 @@ void App_ButtonCb(uint8_t key, uint8_t down)
                     PatchManager_SetDestination(0, 1);
                     break;
                 case 5:
+                    Sampler_SelectRec(2);
+                    Sampler_RemoveActiveRecording(na, 1);
                     Sampler_LoadPatch(0, 1);
                     break;
                 }

@@ -72,7 +72,7 @@
  * you could use for example https://projectgus.github.io/hairless-midiserial/
  * to connect your MIDI device via computer to the serial port
  */
-#define MIDI_RECV_FROM_SERIAL
+//#define MIDI_RECV_FROM_SERIAL
 
 /* activate MIDI via USB (not implemented in this project) */
 //#define MIDI_VIA_USB_ENABLED
