@@ -352,22 +352,26 @@ void Core0TaskSetup()
     Web_Setup();
     Web_AddSlider("Volume", App_SetOutputLevel, 255 * 35);
     Web_AddSlider("Pitch", Sampler_SetPitch);
+    Web_AddLine();
     Web_AddSlider("Attack", Sampler_SetADSR_Attack);
     Web_AddSlider("Decay", Sampler_SetADSR_Decay);
     Web_AddSlider("Sustain", Sampler_SetADSR_Sustain);
     Web_AddSlider("Release", Sampler_SetADSR_Release);
-    //Web_AddSlider("Delay Input Level", Delay_SetInputLevel);
-    //Web_AddSlider("Delay Feedback", Delay_SetFeedback);
-    //Web_AddSlider("Delay Level", Delay_SetLevel);
-    //Web_AddSlider("Delay Length", Delay_SetLength);
-    //Web_AddSlider("LoopStartC", Sampler_LoopStartC);
-    //Web_AddSlider("LoopStartF", Sampler_LoopStartF);
-    //Web_AddSlider("LoopEndC", Sampler_LoopEndC);
-    //Web_AddSlider("LoopEndF", Sampler_LoopEndF);
-    //Web_AddSlider("SetLoopEndMultiplier", Sampler_SetLoopEndMultiplier);
-    //Web_AddSlider("ModulationSpeed", Sampler_ModulationSpeed);
-    //Web_AddSlider("ModulationPitch", Sampler_ModulationPitch);
-    //Web_AddSlider("Reverb_SetLevel", Reverb_SetLevel);
+    Web_AddLine();
+    Web_AddSlider("Delay Input Level", Delay_SetInputLevel);
+    Web_AddSlider("Delay Feedback", Delay_SetFeedback);
+    Web_AddSlider("Delay Level", Delay_SetLevel);
+    Web_AddSlider("Delay Length", Delay_SetLength);
+    Web_AddLine();
+    Web_AddSlider("LoopStartC", Sampler_LoopStartC);
+    Web_AddSlider("LoopStartF", Sampler_LoopStartF);
+    Web_AddSlider("LoopEndC", Sampler_LoopEndC);
+    Web_AddSlider("LoopEndF", Sampler_LoopEndF);
+    Web_AddSlider("SetLoopEndMultiplier", Sampler_SetLoopEndMultiplier);
+    Web_AddLine();
+    Web_AddSlider("ModulationSpeed", Sampler_ModulationSpeed);
+    Web_AddSlider("ModulationPitch", Sampler_ModulationPitch);
+    Web_AddSlider("Reverb_SetLevel", Reverb_SetLevel);
 }
 
 

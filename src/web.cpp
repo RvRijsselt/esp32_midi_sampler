@@ -12,7 +12,6 @@ String devices;
 FuncPtrCallback sliderCallbacks[20];
 int nrOfSliders = 0;
 
-
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -23,15 +22,14 @@ const char index_html[] PROGMEM = R"rawliteral(
     h2 {font-size: 2.3rem;}
     p {font-size: 1.9rem;}
     body {max-width: 400px; margin:0px auto; padding-bottom: 25px;}
-    .slider { -webkit-appearance: none; margin: 14px; width: 360px; height: 25px; background: #FFD65C;
-      outline: none; -webkit-transition: .2s; transition: opacity .2s;}
+    .slider { -webkit-appearance: none; margin: 14px; width: 360px; height: 25px; background: #FFD65C; outline: none; -webkit-transition: .2s; transition: opacity .2s;}
     .slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; background: #003249; cursor: pointer;}
     .slider::-moz-range-thumb { width: 35px; height: 35px; background: #003249; cursor: pointer; } 
+    hr { border: none; background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgb(255, 0, 200), rgba(0, 0, 0, 0)); height: 9px; }
   </style>
 </head>
 <body>
   <h2>Cuculin Web Server</h2>
-  %DEVICES%
 <script>
  var tId;
  function updtRange(el) {
@@ -43,14 +41,24 @@ const char index_html[] PROGMEM = R"rawliteral(
         xhr.send();
      }
      tId = setTimeout(func, 100);
-}
+ }
+ function addSlider(name, id, maxValue) {
+    var div = document.createElement('div');
+    div.innerHTML = "<p>" + name + ": <span id='value-slider-" + id + "'></span></p>"
+                  + "<p><input type='range' oninput='updtRange(this)' id='slider-" + id + "' data-index='"+ id + "' min='0' max='" + maxValue + "' value='127' step='1' class='slider'></p>";
+    document.body.appendChild(div); 
+ }
+ function addHr() {
+    document.body.appendChild(document.createElement('hr')); 
+ }
+%SCRIPT%
 </script>
 </body>
 </html>
 )rawliteral";
 
 String processor(const String& var){
-    if (var == "DEVICES") {
+    if (var == "SCRIPT") {
         return devices;
     }
     return String();
@@ -102,19 +110,19 @@ void Web_Setup()
 
     // Start server
     server.begin();
-
 }
 
 void Web_AddSlider(std::string name, FuncPtrCallback callback, int maxValue) {
-    int new_id = nrOfSliders;
+    const int new_id = nrOfSliders;
+    char outstr[50];
 
-    std::ostringstream str;
-    str         << "<div><p>" << name << ": <span id='value-slider-" << new_id << "'></span></p>"
-                << "<p><input type='range' oninput='updtRange(this)' "
-                << "id='slider-" << new_id << "' data-index='"<< new_id << "' "
-                << "min='0' max='" << maxValue << "' value='127' step='1' class='slider'></p></div>\n";
-    devices += str.str().c_str();
+    sprintf(outstr, "addSlider(\"%s\", %d, %d);\n", name.c_str(), new_id, maxValue);
+    devices += outstr;
 
     sliderCallbacks[new_id] = callback;
     nrOfSliders++;
+}
+
+void Web_AddLine() {
+    devices += "addHr();\n";
 }
