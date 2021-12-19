@@ -1,19 +1,23 @@
+#include "web.h"
 #include <WiFi.h>
 #include <AsyncTCP.h>
 #include <ESPmDNS.h>
 #include <ESPAsyncWebServer.h>
 
-#define WIFI_SSID "Rene-en-Nynke"
-#define WIFI_PASSWORD ""
-
+#include "wifi_credentials.h"
 
 AsyncWebServer server(80);
+String devices;
 
-const char index_html[] = R"rawliteral(
+FuncPtrCallback sliderCallbacks[20];
+int nrOfSliders = 0;
+
+
+const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>ESP Web Server</title>
+  <title>Cuculin Web Server</title>
   <style>
     html {font-family: Arial; display: inline-block; text-align: center;}
     h2 {font-size: 2.3rem;}
@@ -26,34 +30,28 @@ const char index_html[] = R"rawliteral(
   </style>
 </head>
 <body>
-  <h2>ESP Web Server</h2>
-  <p><span id="textSliderValue">%SLIDERVALUE%</span></p>
-  <p><input type="range" onchange="updateSliderPWM(this)" id="pwmSlider" min="0" max="255" value="%SLIDERVALUE%" step="1" class="slider"></p>
+  <h2>Cuculin Web Server</h2>
+  %DEVICES%
 <script>
- function updateSliderPWM(element) {
-  var sliderValue = document.getElementById("pwmSlider").value;
-  document.getElementById("textSliderValue").innerHTML = sliderValue;
-  console.log(sliderValue);
-  var xhr = new XMLHttpRequest();
-  xhr.open("GET", "/slider?value="+sliderValue, true);
-  xhr.send();
+ var tId;
+ function updtRange(el) {
+     clearTimeout(tId);
+     func = function() {
+        document.getElementById("value-"+el.id).innerHTML = el.value;
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/slider?value="+el.value+"&id="+el.dataset.index, true);
+        xhr.send();
+     }
+     tId = setTimeout(func, 100);
 }
 </script>
 </body>
 </html>
 )rawliteral";
 
-const char* PARAM_INPUT = "value";
-const int freq = 5000;
-const int ledChannel = 0;
-const int resolution = 8;
-String sliderValue = "255";
-
-// Replaces placeholder with button section in your web page
 String processor(const String& var){
-    //Serial.println(var);
-    if (var == "SLIDERVALUE"){
-        return sliderValue;
+    if (var == "DEVICES") {
+        return devices;
     }
     return String();
 }
@@ -72,17 +70,10 @@ void Web_Setup()
     Serial.println(" done.");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
-
-#ifdef ESP32
     WiFi.setSleep(false);
-#endif
 
     // Set up mDNS responder:
-    // - first argument is the domain name, in this example
-    //   the fully-qualified domain name is "esp8266.local"
-    // - second argument is the IP address to advertise
-    //   we send our IP address on the WiFi network
-    //if (MDNS.begin("dashboard")) {
+    //if (MDNS.begin("cuculin")) {
     //    // Add service to MDNS-SD
     //    MDNS.addService("http", "tcp", 80);
     //    Serial.println("mDNS responder started");
@@ -92,27 +83,38 @@ void Web_Setup()
 
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+        Serial.printf("Web connection");
         request->send_P(200, "text/html", index_html, processor);
     });
 
-    // Send a GET request to <ESP_IP>/slider?value=<inputMessage>
+    // Send a GET request to <ESP_IP>/slider?value=<inputMessage>&id=<index>
     server.on("/slider", HTTP_GET, [] (AsyncWebServerRequest *request) {
-        String inputMessage;
-        // GET input1 value on <ESP_IP>/slider?value=<inputMessage>
-        if (request->hasParam(PARAM_INPUT)) {
-            inputMessage = request->getParam(PARAM_INPUT)->value();
-            sliderValue = inputMessage;
-            auto val = sliderValue.toInt() / 256.0f;
-            App_SetOutputLevel(0, val * 15);
+        Serial.printf("Slider %s", request->url().c_str());
+        if (request->hasParam("value") && request->hasParam("id")) {
+            auto value = request->getParam("value")->value().toInt() / 256.0f;
+            auto index = request->getParam("id")->value().toInt();
+            if (index >= 0 && index < nrOfSliders) {
+                sliderCallbacks[index](1, value);
+            }
         }
-        else {
-            inputMessage = "No message sent";
-        }
-        Serial.println(inputMessage);
         request->send(200, "text/plain", "OK");
     });
-    
+
     // Start server
     server.begin();
+
 }
 
+void Web_AddSlider(std::string name, FuncPtrCallback callback, int maxValue) {
+    int new_id = nrOfSliders;
+
+    std::ostringstream str;
+    str         << "<div><p>" << name << ": <span id='value-slider-" << new_id << "'></span></p>"
+                << "<p><input type='range' oninput='updtRange(this)' "
+                << "id='slider-" << new_id << "' data-index='"<< new_id << "' "
+                << "min='0' max='" << maxValue << "' value='127' step='1' class='slider'></p></div>\n";
+    devices += str.str().c_str();
+
+    sliderCallbacks[new_id] = callback;
+    nrOfSliders++;
+}
