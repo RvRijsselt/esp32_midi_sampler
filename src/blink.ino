@@ -36,6 +36,7 @@
  * @brief  this file includes a simple blink task implementation
  */
 
+#include "config.h"
 
 #ifdef BLINK_LED_PIN
 

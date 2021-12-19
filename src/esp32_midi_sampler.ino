@@ -255,11 +255,11 @@ void setup()
      */
     Midi_Setup();
 
-#if 0
-    setup_wifi();
-#else
-    WiFi.mode(WIFI_OFF);
-#endif
+//#if 0
+//    setup_wifi();
+//#else
+//    WiFi.mode(WIFI_OFF);
+//#endif
 
 #ifndef ESP8266
     btStop();
@@ -297,8 +297,8 @@ void setup()
     /* select sd card */
 #ifdef AUTO_LOAD_PATCHES_FROM_SD_MMC
     PatchManager_SetDestination(1, 1);
+    Sampler_LoadPatchFile("/samples/koekoek1.wav");
     Sampler_LoadPatchFile("/samples/violin2.wav");
-    Sampler_LoadPatchFile("/samples/pet_bottle.wav");
 #endif
 
     /* we need a second task for the terminal output */
@@ -314,9 +314,9 @@ void setup()
     Sampler_SetScratchSample(0, 1);
 #endif
 
-    pinMode(PIN_KEY_1, INPUT_PULLUP);
-    pinMode(PIN_KEY_2, INPUT_PULLUP);
-    pinMode(PIN_KEY_3, INPUT_PULLUP);
+    //pinMode(PIN_KEY_1, INPUT_PULLUP);
+    //pinMode(PIN_KEY_2, INPUT_PULLUP);
+    //pinMode(PIN_KEY_3, INPUT_PULLUP);
 
     Sampler_SetADSR_Attack(1, 1.0f);
     Sampler_SetADSR_Decay(1, 1.0f);
@@ -345,6 +345,7 @@ void Core0TaskSetup()
     App_SetBrightness(0, 0.25);
 #endif
 
+    Web_Setup();
     VuMeter_Init();
 }
 
@@ -471,6 +472,12 @@ void Read_Touches()
     lasttouched = currtouched;
     lasttouched2 = currtouched2;
 
+    //if (digitalRead(PIN_KEY_1) == LOW) {
+    //    Serial.printf("Pin 1 low");
+    //}
+    //if (digitalRead(PIN_KEY_2) == LOW) {
+    //    Serial.printf("Pin 2 low");
+    //}
     //delay(20);
 }
 
