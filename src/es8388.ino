@@ -168,12 +168,14 @@ bool ES8388_begin(int sda, int scl, uint32_t frequency)
 
 void es8388_read_all()
 {
+#ifdef STATUS_ENABLED
     for (int i = 0; i < 53; i++)
     {
         uint8_t reg = 0;
         reg = ES8388_ReadReg(i);
         Serial.printf("Reg 0x%02x = 0x%02x\n", i, reg);
     }
+#endif
 }
 
 void ES8388_SetADCVOL(uint8_t unused, float vol)

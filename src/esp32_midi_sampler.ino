@@ -120,7 +120,6 @@
 #define PIN_KEY_3                   (19)
 
 Adafruit_ADS1115 ads;
-Adafruit_ADS1115 ads2;
 Adafruit_MPR121 cap = Adafruit_MPR121();
 Adafruit_MPR121 cap2 = Adafruit_MPR121();
 
@@ -192,14 +191,11 @@ void setup()
 
     Serial.printf("Firmware started successfully\n");
 
+    Wire.setClock(100000);
     ScanI2C();
 
-    if (!ads.begin(ADS1X15_ADDRESS)) {
+    if (!ads.begin(ADS1X15_ADDRESS+1)) {
         Serial.println("Failed to initialize ADS.");
-        while (1);
-    }
-    if (!ads2.begin(ADS1X15_ADDRESS+1)) {
-        Serial.println("Failed to initialize ADS 2.");
         while (1);
     }
     if (!cap.begin(MPR121_I2CADDR_DEFAULT)) {
@@ -213,7 +209,6 @@ void setup()
 
     // Config ADS to read exact voltage.
     ads.setGain(GAIN_ONE);
-    ads2.setGain(GAIN_ONE);
 
 #ifdef AS5600_ENABLED
     //  digitalWrite(TFT_CS, HIGH);
@@ -416,37 +411,21 @@ bool isChanged(float first, float& second)
 
 void Update_Pots()
 {
-    static float lastPots[8];
+    static float lastPots[4];
     const float maxV = 3.2f;
     
     for (int p = 0; p < 4; ++p) {
         auto pot1 = ads.readADC_SingleEnded(p) * VPS;
-        auto pot2 = ads2.readADC_SingleEnded(p) * VPS;
 
         switch (p) {
             case 0:
                 if (isChanged(pot1, lastPots[p])) {
                     Midi_PitchBend(0, mapfloat(pot1, 1.0, maxV, 0, 16384));
                 }
-                if (isChanged(pot2, lastPots[p+4])) {
-                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
-                    //Sampler_SetADSR_Release(1, val);
-                    //Sampler_SetADSR_Release(2, val);
-
-                    Sampler_SelectRec(2);
-                    Sampler_LoopStartC(1, val);
-                }
                 break;
             case 1:
                 if (isChanged(pot1, lastPots[p])) {
                     Reverb_SetLevel(0, mapfloat(pot1, 1.0, maxV, 1.0f, 0.0f));
-                }
-                if (isChanged(pot2, lastPots[p+4])) {
-                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
-                    //Sampler_SetADSR_Sustain(1, mapfloat(pot2, 0, maxV, 0, 1.0f));
-                    //Sampler_SetADSR_Sustain(2, mapfloat(pot2, 0, maxV, 0, 1.0f));
-                    Sampler_SelectRec(2);
-                    Sampler_LoopStartF(1, val);
                 }
                 break;
             case 2:
@@ -454,14 +433,7 @@ void Update_Pots()
                     auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
                     //App_SetOutputLevel(0, val);
                     //Status_ValueChangedFloat("volume 2", val);
-                    Sampler_SetLoopEndMultiplier(0, val);
-                }
-                if (isChanged(pot2, lastPots[p+4])) {
-                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
-                    //Sampler_SetADSR_Decay(1, mapfloat(pot2, 0, maxV, 0, 1.0f));
-                    //Sampler_SetADSR_Decay(2, mapfloat(pot2, 0, maxV, 0, 1.0f));
-                    Sampler_SelectRec(2);
-                    Sampler_LoopEndC(1, val);
+                    //Sampler_SetLoopEndMultiplier(0, val);
                 }
                 break;
             case 3:
@@ -469,16 +441,8 @@ void Update_Pots()
                     auto val = mapfloat(pot1, 0, maxV, 0, 1.2f); 
                     //ES8388_SetOUT1VOL(0,  val); 
                     //Status_ValueChangedFloat("volume 1", val);
-                    Sampler_SelectRec(2);
-                    Sampler_SetPitch(2, val);
-                }
-                if (isChanged(pot2, lastPots[p+4])) {
-                    auto val = mapfloat(pot2, 0, maxV, 0, 1.0f);
-                    //Sampler_SetADSR_Attack(1, val);
-                    //Sampler_SetADSR_Attack(2, val);
-                    Sampler_SelectRec(2);
-                    Sampler_LoopEndF(1, val);
-                    //Sampler_SetPitch(1, val);
+                    //Sampler_SelectRec(2);
+                    //Sampler_SetPitch(2, val);
                 }
                 break;
 
@@ -487,9 +451,6 @@ void Update_Pots()
 
     //for (int p = 0; p < 4; ++p) {
     //    Serial.printf("%.3f, ", lastPots[p]);
-    //}
-    //for (int p = 0; p < 4; ++p) {
-    //    Serial.printf("%.3f, ", lastPots[p+4]);
     //}
     //Serial.println();
 }
