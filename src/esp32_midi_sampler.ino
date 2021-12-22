@@ -336,6 +336,25 @@ void setup()
     Status_Clear();
 }
 
+int cap_threshold = 50;
+void App_CapThresholdsCore0()
+{
+    static int last_threshold = cap_threshold;
+    if (cap_threshold != last_threshold) {
+        last_threshold = cap_threshold;
+
+        Serial.printf("Cap thresholds: %d %d", cap_threshold+5, cap_threshold);
+        cap.setThresholds(cap_threshold + 5, cap_threshold);
+        cap2.setThresholds(cap_threshold + 5, cap_threshold);
+    }
+}
+
+void App_CapThresholds(uint8_t not_used, float value)
+{
+    cap_threshold = value * 240;
+}
+
+
 inline
 void Core0TaskSetup()
 {
@@ -352,6 +371,11 @@ void Core0TaskSetup()
     Web_Setup();
     Web_AddSlider("Volume", App_SetOutputLevel, 255 * 35);
     Web_AddSlider("Pitch", Sampler_SetPitch);
+    Web_AddSlider("Touch Sensitivity", App_CapThresholds);
+    Web_AddLine();
+    Web_AddButton("RecordWait", Sampler_RecordWait);
+    Web_AddButton("LoopAll", Sampler_LoopAll);
+    Web_AddButton("LoopRemove", Sampler_LoopRemove);
     Web_AddLine();
     Web_AddSlider("Attack", Sampler_SetADSR_Attack);
     Web_AddSlider("Decay", Sampler_SetADSR_Decay);
@@ -367,11 +391,11 @@ void Core0TaskSetup()
     Web_AddSlider("LoopStartF", Sampler_LoopStartF);
     Web_AddSlider("LoopEndC", Sampler_LoopEndC);
     Web_AddSlider("LoopEndF", Sampler_LoopEndF);
-    Web_AddSlider("SetLoopEndMultiplier", Sampler_SetLoopEndMultiplier);
+    Web_AddSlider("LoopMultiplier", Sampler_SetLoopEndMultiplier);
     Web_AddLine();
-    Web_AddSlider("ModulationSpeed", Sampler_ModulationSpeed);
-    Web_AddSlider("ModulationPitch", Sampler_ModulationPitch);
-    Web_AddSlider("Reverb_SetLevel", Reverb_SetLevel);
+    //Web_AddSlider("ModulationSpeed", Sampler_ModulationSpeed);
+    //Web_AddSlider("ModulationPitch", Sampler_ModulationPitch);
+    //Web_AddSlider("Reverb Level", Reverb_SetLevel);
 }
 
 
@@ -474,6 +498,8 @@ void Read_Touches()
 {
     int base = 69;   // a = recorded speed
     //int base = 83;   // c 
+
+    App_CapThresholdsCore0();
 
     // Get the currently touched pads
     currtouched = cap.touched();

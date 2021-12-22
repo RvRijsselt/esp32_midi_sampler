@@ -10,7 +10,7 @@ AsyncWebServer server(80);
 String devices;
 
 FuncPtrCallback sliderCallbacks[20];
-int nrOfSliders = 0;
+int nrOfDevices = 0;
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
@@ -48,6 +48,16 @@ const char index_html[] PROGMEM = R"rawliteral(
                   + "<p><input type='range' oninput='updtRange(this)' id='slider-" + id + "' data-index='"+ id + "' min='0' max='" + maxValue + "' value='127' step='1' class='slider'></p>";
     document.body.appendChild(div); 
  }
+ function addBtn(name, id) {
+    var btn = document.createElement('button');
+    btn.innerHTML = name;
+    btn.addEventListener("click", function() {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/slider?value=255&id="+id, true);
+        xhr.send();
+    });
+    document.body.appendChild(btn); 
+ }
  function addHr() {
     document.body.appendChild(document.createElement('hr')); 
  }
@@ -80,6 +90,9 @@ void Web_Setup()
     Serial.println(WiFi.localIP());
     WiFi.setSleep(false);
 
+
+    devices.reserve(1000);
+
     // Set up mDNS responder:
     //if (MDNS.begin("cuculin")) {
     //    // Add service to MDNS-SD
@@ -101,8 +114,8 @@ void Web_Setup()
         if (request->hasParam("value") && request->hasParam("id")) {
             auto value = request->getParam("value")->value().toInt() / 256.0f;
             auto index = request->getParam("id")->value().toInt();
-            if (index >= 0 && index < nrOfSliders) {
-                sliderCallbacks[index](1, value);
+            if (index >= 0 && index < nrOfDevices) {
+                sliderCallbacks[index](2, value);
             }
         }
         request->send(200, "text/plain", "OK");
@@ -112,15 +125,26 @@ void Web_Setup()
     server.begin();
 }
 
-void Web_AddSlider(std::string name, FuncPtrCallback callback, int maxValue) {
-    const int new_id = nrOfSliders;
-    char outstr[50];
+void Web_AddButton(const char *name, FuncPtrCallback callback) {
+    const int new_id = nrOfDevices;
+    char outstr[70];
 
-    sprintf(outstr, "addSlider(\"%s\", %d, %d);\n", name.c_str(), new_id, maxValue);
+    sprintf(outstr, "addBtn(\"%s\", %d);\n", name, new_id);
     devices += outstr;
 
     sliderCallbacks[new_id] = callback;
-    nrOfSliders++;
+    nrOfDevices++;
+}
+
+void Web_AddSlider(const char *name, FuncPtrCallback callback, int maxValue) {
+    const int new_id = nrOfDevices;
+    char outstr[90];
+
+    sprintf(outstr, "addSlider(\"%s\", %d, %d);\n", name, new_id, maxValue);
+    devices += outstr;
+
+    sliderCallbacks[new_id] = callback;
+    nrOfDevices++;
 }
 
 void Web_AddLine() {
