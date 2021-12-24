@@ -3,15 +3,24 @@
 #include <AsyncTCP.h>
 #include <ESPmDNS.h>
 #include <ESPAsyncWebServer.h>
+#include <DNSServer.h>
+
 
 #include "wifi_credentials.h"
 
+//#define USE_AP
+#define USE_STATIC
+
+#ifdef USE_AP
+DNSServer dnsServer;
+#endif
 AsyncWebServer server(80);
 String devices;
 
 FuncPtrCallback sliderCallbacks[20];
 int nrOfDevices = 0;
 
+#ifndef USE_STATIC
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -66,6 +75,85 @@ const char index_html[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
+#else
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE HTML><html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cuculin Web Server</title>
+  <style>
+    html {font-family: Arial; display: inline-block; text-align: center;}
+    h2 {font-size: 2.3rem;}
+    p {font-size: 1.9rem;}
+    body {max-width: 400px; margin:0px auto; padding-bottom: 25px;}
+    .slider { -webkit-appearance: none; margin: 14px; width: 360px; height: 25px; background: #FFD65C; outline: none; -webkit-transition: .2s; transition: opacity .2s;}
+    .slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; background: #003249; cursor: pointer;}
+    .slider::-moz-range-thumb { width: 35px; height: 35px; background: #003249; cursor: pointer; } 
+    hr { border: none; background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgb(255, 0, 200), rgba(0, 0, 0, 0)); height: 9px; }
+  </style>
+</head>
+<body>
+  <h2>Cuculin Web Server</h2>
+<script>
+ var tId;
+ function updtRange(el) {
+     clearTimeout(tId);
+     func = function() {
+        document.getElementById("value-"+el.id).innerHTML = el.value;
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/slider?value="+el.value+"&id="+el.dataset.index, true);
+        xhr.send();
+     }
+     tId = setTimeout(func, 100);
+ }
+ function addSlider(name, id, maxValue) {
+    var div = document.createElement('div');
+    div.innerHTML = "<p>" + name + ": <span id='value-slider-" + id + "'></span></p>"
+                  + "<p><input type='range' oninput='updtRange(this)' id='slider-" + id + "' data-index='"+ id + "' min='0' max='" + maxValue + "' value='127' step='1' class='slider'></p>";
+    document.body.appendChild(div); 
+ }
+ function addBtn(name, id) {
+    var btn = document.createElement('button');
+    btn.innerHTML = name;
+    btn.addEventListener("click", function() {
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", "/slider?value=255&id="+id, true);
+        xhr.send();
+    });
+    document.body.appendChild(btn); 
+ }
+ function addHr() {
+    document.body.appendChild(document.createElement('hr')); 
+ }
+addSlider("Volume", 0, 8925);
+addSlider("Pitch", 1, 255);
+addSlider("Touch Sensitivity", 2, 255);
+addHr();
+addBtn("RecordWait", 3);
+addBtn("LoopAll", 4);
+addBtn("LoopRemove", 5);
+addHr();
+addSlider("Attack", 6, 255);
+addSlider("Decay", 7, 255);
+addSlider("Sustain", 8, 255);
+addSlider("Release", 9, 255);
+addHr();
+addSlider("Delay Input Level", 10, 255);
+addSlider("Delay Feedback", 11, 255);
+addSlider("Delay Level", 12, 255);
+addSlider("Delay Length", 13, 255);
+addHr();
+addSlider("LoopStartC", 14, 255);
+addSlider("LoopStartF", 15, 255);
+addSlider("LoopEndC", 16, 255);
+addSlider("LoopEndF", 17, 255);
+addSlider("LoopMultiplier", 18, 255);
+addHr();
+</script>
+</body>
+</html>
+)rawliteral";
+#endif
 
 String processor(const String& var){
     if (var == "SCRIPT") {
@@ -74,11 +162,28 @@ String processor(const String& var){
     return String();
 }
 
+class CaptiveRequestHandler : public AsyncWebHandler {
+public:
+  CaptiveRequestHandler() {}
+  virtual ~CaptiveRequestHandler() {}
+
+  bool canHandle(AsyncWebServerRequest *request){
+    return true;
+  }
+
+  void handleRequest(AsyncWebServerRequest *request) {
+    request->send_P(200, "text/html", index_html); 
+  }
+};
+
 void Web_Setup()
 {
     Serial.print("Connecting to wifi...");
 
+#ifndef USE_AP
     WiFi.mode(WIFI_STA);
+    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+    WiFi.setHostname("cuculin");
     WiFi.setAutoConnect(true);
     WiFi.setAutoReconnect(true);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -89,6 +194,17 @@ void Web_Setup()
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
     WiFi.setSleep(false);
+#else
+    IPAddress localIP(192,168,1,1);
+    IPAddress subnet(255,255,255,0);
+    WiFi.mode(WIFI_AP);
+    WiFi.setHostname("cuculin");
+    WiFi.softAP("cuculin", "kukukuku");
+    delay(200);
+    WiFi.softAPConfig(localIP, localIP, subnet);
+    delay(200);
+    Serial.print("AP IP address: ");Serial.println(WiFi.softAPIP());
+#endif
 
 
     devices.reserve(1000);
@@ -104,8 +220,19 @@ void Web_Setup()
 
     // Route for root / web page
     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-        Serial.printf("Web connection");
+        static int cnt = 0;
+        int req = ++cnt;
+        Serial.printf("Web connection %d\n", req);
+        Serial.printf("ESP.getFreeHeap() %d\n", ESP.getFreeHeap());
+        Serial.printf("ESP.getMinFreeHeap() %d\n", ESP.getMinFreeHeap());
+        Serial.printf("ESP.getHeapSize() %d\n", ESP.getHeapSize());
+        Serial.printf("ESP.getMaxAllocHeap() %d\n", ESP.getMaxAllocHeap());
+#ifdef USE_STATIC
+        request->send_P(200, "text/html", index_html);
+#else
         request->send_P(200, "text/html", index_html, processor);
+#endif
+        Serial.printf("Web connection %d done\n", req);
     });
 
     // Send a GET request to <ESP_IP>/slider?value=<inputMessage>&id=<index>
@@ -121,8 +248,19 @@ void Web_Setup()
         request->send(200, "text/plain", "OK");
     });
 
+#ifdef USE_AP
+    dnsServer.start(53, "*", WiFi.softAPIP());
+    server.addHandler(new CaptiveRequestHandler()).setFilter(ON_AP_FILTER);//only when requested from AP
+#endif
+
     // Start server
     server.begin();
+}
+
+void Web_ProcessLoop() {
+#ifdef USE_AP
+    dnsServer.processNextRequest();
+#endif
 }
 
 void Web_AddButton(const char *name, FuncPtrCallback callback) {

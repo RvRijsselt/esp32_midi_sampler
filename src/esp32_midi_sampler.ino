@@ -430,7 +430,7 @@ void Update_Pots()
                 break;
             case 2:
                 if (isChanged(pot1, lastPots[p])) {
-                    auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
+                    //auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
                     //App_SetOutputLevel(0, val);
                     //Status_ValueChangedFloat("volume 2", val);
                     //Sampler_SetLoopEndMultiplier(0, val);
@@ -438,7 +438,7 @@ void Update_Pots()
                 break;
             case 3:
                 if (isChanged(pot1, lastPots[p])) {
-                    auto val = mapfloat(pot1, 0, maxV, 0, 1.2f); 
+                    //auto val = mapfloat(pot1, 0, maxV, 0, 1.2f); 
                     //ES8388_SetOUT1VOL(0,  val); 
                     //Status_ValueChangedFloat("volume 1", val);
                     //Sampler_SelectRec(2);
@@ -510,6 +510,7 @@ void Core0TaskLoop()
 
     Update_Pots();
     Read_Touches();
+    Web_ProcessLoop();
 }
 
 void Core0Task(void *parameter)
