@@ -115,9 +115,7 @@
 
 #include "web.h"
 
-#define PIN_KEY_1                   (21)
-#define PIN_KEY_2                   (22)
-#define PIN_KEY_3                   (19)
+#define PIN_RECORD_BTN                   (22)
 
 Adafruit_ADS1115 ads;
 Adafruit_MPR121 cap = Adafruit_MPR121();
@@ -311,9 +309,7 @@ void setup()
     Sampler_SetScratchSample(0, 1);
 #endif
 
-    //pinMode(PIN_KEY_1, INPUT_PULLUP);
-    //pinMode(PIN_KEY_2, INPUT_PULLUP);
-    //pinMode(PIN_KEY_3, INPUT_PULLUP);
+    pinMode(PIN_RECORD_BTN, INPUT_PULLUP);
 
     Sampler_SetADSR_Attack(1, 1.0f);
     Sampler_SetADSR_Decay(1, 1.0f);
@@ -349,6 +345,12 @@ void App_CapThresholds(uint8_t not_used, float value)
     cap_threshold = value * 240;
 }
 
+void App_RecordWait(uint8_t quarter, float value){
+    Sampler_SelectRec(2);
+    Sampler_RemoveActiveRecording(na, 1);
+    Sampler_RecordWait(0, value);
+}
+
 
 inline
 void Core0TaskSetup()
@@ -368,7 +370,7 @@ void Core0TaskSetup()
     Web_AddSlider("Pitch", Sampler_SetPitch);
     Web_AddSlider("Touch Sensitivity", App_CapThresholds);
     Web_AddLine();
-    Web_AddButton("RecordWait", Sampler_RecordWait);
+    Web_AddButton("RecordWait", App_RecordWait);
     Web_AddButton("LoopAll", Sampler_LoopAll);
     Web_AddButton("LoopRemove", Sampler_LoopRemove);
     Web_AddLine();
@@ -431,18 +433,13 @@ void Update_Pots()
             case 2:
                 if (isChanged(pot1, lastPots[p])) {
                     //auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
-                    //App_SetOutputLevel(0, val);
-                    //Status_ValueChangedFloat("volume 2", val);
-                    //Sampler_SetLoopEndMultiplier(0, val);
                 }
                 break;
             case 3:
                 if (isChanged(pot1, lastPots[p])) {
-                    //auto val = mapfloat(pot1, 0, maxV, 0, 1.2f); 
-                    //ES8388_SetOUT1VOL(0,  val); 
-                    //Status_ValueChangedFloat("volume 1", val);
-                    //Sampler_SelectRec(2);
-                    //Sampler_SetPitch(2, val);
+                    auto val = mapfloat(pot1, 0.1, maxV, 0.1f, 30.0f); 
+                    App_SetOutputLevel(1, val);
+                    Status_ValueChangedFloat("volume 1", val);
                 }
                 break;
 
@@ -483,14 +480,19 @@ void Read_Touches()
 
     lasttouched = currtouched;
     lasttouched2 = currtouched2;
+}
 
-    //if (digitalRead(PIN_KEY_1) == LOW) {
-    //    Serial.printf("Pin 1 low");
-    //}
-    //if (digitalRead(PIN_KEY_2) == LOW) {
-    //    Serial.printf("Pin 2 low");
-    //}
-    //delay(20);
+void CheckRecordButton() {
+    static bool lastState = HIGH;
+    bool state = digitalRead(PIN_RECORD_BTN);
+
+    if (state != lastState) {
+        if (state == LOW) {
+            Serial.printf("Pin 2 low");
+            App_RecordWait(0, 1);
+        }
+        lastState = state;
+    }
 }
 
 
@@ -508,6 +510,7 @@ void Core0TaskLoop()
     Display_Draw();
 #endif
 
+    CheckRecordButton();
     Update_Pots();
     Read_Touches();
     Web_ProcessLoop();
