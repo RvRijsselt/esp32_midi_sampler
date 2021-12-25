@@ -158,7 +158,7 @@ const int na = 0;
  */
 
 /* this is used to add a task to core 0 */
-TaskHandle_t  Core0TaskHnd ;
+TaskHandle_t  Core0TaskHnd;
 
 /* to avoid the high click when turning on the microphone */
 static float click_supp_gain = 0.0f;
@@ -167,8 +167,6 @@ float *vuInL;
 float *vuInR;
 float *vuOutL;
 float *vuOutR;
-
-extern uint32_t sampleRecordCount;
 
 float *VuMeter_GetPtr(uint8_t index);
 
@@ -680,9 +678,6 @@ inline void audio_task()
  */
 void loop_1Hz(void)
 {
-#ifdef BLINK_LED_PIN
-    Blink_Process();
-#endif
 #if 0 /* use this line to to show analog button values to setup their values */
     printf("ADC: %d\n", analogRead(36));
 #endif
@@ -702,6 +697,9 @@ void loop_100Hz(void)
     /*
      * Put your functions here which should be called 100 times a second
      */
+#ifdef BLINK_LED_PIN
+    Blink_Process(Sampler_IsRecording() ? 150 : 900);
+#endif
 #ifdef ESP32_AUDIO_KIT
     button_loop();
 #endif

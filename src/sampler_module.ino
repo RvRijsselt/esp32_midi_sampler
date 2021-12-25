@@ -227,6 +227,10 @@ void Sampler_Init(void)
     vuSlwInput = VuMeter_GetPtr(3);
 }
 
+bool Sampler_IsRecording()
+{
+    return sampleStatus != sampler_idle;
+}
 
 float Modulation(void)
 {
