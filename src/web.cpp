@@ -32,6 +32,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     .slider { -webkit-appearance: none; margin: 14px; width: 360px; height: 25px; background: #FFD65C; outline: none; -webkit-transition: .2s; transition: opacity .2s;}
     .slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; background: #003249; cursor: pointer;}
     .slider::-moz-range-thumb { width: 35px; height: 35px; background: #003249; cursor: pointer; } 
+    select { margin: 14px; width: 360px; height: 30px; background: #5cb4ff; font-weight: bold; text-align: center; font-variant-caps: all-small-caps;}
     hr { border: none; background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgb(255, 0, 200), rgba(0, 0, 0, 0)); height: 9px; }
   </style>
 </head>
@@ -42,9 +43,10 @@ const char index_html[] PROGMEM = R"rawliteral(
  function updtRange(el) {
      clearTimeout(tId);
      func = function() {
+        rec = document.getElementById("recs").value;
         document.getElementById("value-"+el.id).innerHTML = el.value;
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", "/slider?value="+el.value+"&id="+el.dataset.index, true);
+        xhr.open("GET", "/slider?value="+el.value+"&id="+el.dataset.index+"&rec="+rec, true);
         xhr.send();
      }
      tId = setTimeout(func, 100);
@@ -59,11 +61,26 @@ const char index_html[] PROGMEM = R"rawliteral(
     var btn = document.createElement('button');
     btn.innerHTML = name;
     btn.addEventListener("click", function() {
+        rec = document.getElementById("recs").value;
         var xhr = new XMLHttpRequest();
-        xhr.open("GET", "/slider?value=255&id="+id, true);
+        xhr.open("GET", "/slider?value=255&id="+id+"&rec="+rec, true);
         xhr.send();
     });
     document.body.appendChild(btn); 
+ }
+ function addSelector() {
+	p = document.createElement('div');
+	const opts = [
+	  "Sine long",
+	  "Sine short",
+	  "Sleighbells",
+	  "Last recording",
+	];
+    const sel = "<p>Selected recording</p><p><select id='recs' name='rec'>" + 
+        opts.map((opt,index) => { return `<option value="${index}">${opt}</option>`; }) +
+        "</select></p>"
+	p.innerHTML = sel;
+	document.body.appendChild(p); 
  }
  function addHr() {
     document.body.appendChild(document.createElement('hr')); 
@@ -153,10 +170,11 @@ void Web_Setup()
     server.on("/slider", HTTP_GET, [] (AsyncWebServerRequest *request) {
         Serial.printf("Slider %s", request->url().c_str());
         if (request->hasParam("value") && request->hasParam("id")) {
+            auto rec = request->getParam("rec")->value().toInt();
             auto value = request->getParam("value")->value().toInt() / 256.0f;
             auto index = request->getParam("id")->value().toInt();
             if (index >= 0 && index < nrOfDevices) {
-                sliderCallbacks[index](2, value);
+                sliderCallbacks[index](rec % 4 + 1, value);
             }
         }
         request->send(200, "text/plain", "OK");
@@ -201,6 +219,10 @@ void Web_AddSlider(const char *name, FuncPtrCallback callback, int maxValue) {
 
     sliderCallbacks[new_id] = callback;
     nrOfDevices++;
+}
+
+void Web_AddRecSelector() {
+    devices += "addSelector();\n";
 }
 
 void Web_AddLine() {

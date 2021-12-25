@@ -768,8 +768,9 @@ void Sampler_ScratchFader(uint8_t unused, float value)
 }
 #endif
 
-void Sampler_LoopStartC(uint8_t quarter, float value)
+void Sampler_LoopStartC(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     if (loop_param_lock)
     {
         return;
@@ -783,8 +784,9 @@ void Sampler_LoopStartC(uint8_t quarter, float value)
     }
 }
 
-void Sampler_LoopStartF(uint8_t quarter, float value)
+void Sampler_LoopStartF(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     if (loop_param_lock)
     {
         return;
@@ -798,8 +800,9 @@ void Sampler_LoopStartF(uint8_t quarter, float value)
     }
 }
 
-void Sampler_LoopEndC(uint8_t quarter, float value)
+void Sampler_LoopEndC(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     if (loop_param_lock)
     {
         return;
@@ -824,8 +827,9 @@ void Sampler_LoopEndC(uint8_t quarter, float value)
     }
 }
 
-void Sampler_LoopEndF(uint8_t quarter, float value)
+void Sampler_LoopEndF(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     if (loop_param_lock)
     {
         return;
@@ -839,8 +843,9 @@ void Sampler_LoopEndF(uint8_t quarter, float value)
     }
 }
 
-void Sampler_LoopAll(uint8_t index, float value)
+void Sampler_LoopAll(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     if ((value > 0) && (lastActiveRec != NULL))
     {
         float sampleLen = (lastActiveRec->end - lastActiveRec->start);
@@ -872,8 +877,9 @@ void Sampler_LoopUnlock(uint8_t not_used, float value)
     }
 }
 
-void Sampler_LoopRemove(uint8_t index, float value)
+void Sampler_LoopRemove(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     if ((value > 0) && (lastActiveRec != NULL))
     {
         lastActiveRec->loop_start = lastActiveRec->end;
@@ -881,8 +887,9 @@ void Sampler_LoopRemove(uint8_t index, float value)
     }
 }
 
-void Sampler_SetLoopEndMultiplier(uint8_t quarter, float value)
+void Sampler_SetLoopEndMultiplier(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     int loop_end_mul_i = 1 + ((value) * 127.0f);  /* 128 octaves */
     loop_end_mul = loop_end_mul_i;
     Sampler_UpdateLoopRange();
@@ -892,8 +899,9 @@ void Sampler_SetLoopEndMultiplier(uint8_t quarter, float value)
     }
 }
 
-void Sampler_SetPitch(uint8_t quarter, float value)
+void Sampler_SetPitch(uint8_t rec, float value)
 {
+    Sampler_SelectRec(rec);
     if (lastActiveRec != NULL)
     {
         lastActiveRec->pitch = 0.5f * pow(2.0f, 2.0f * value);
@@ -1129,9 +1137,9 @@ void Sampler_LoadPatch(uint8_t unused, float value)
     }
 }
 
-void Sampler_SetADSR_Attack(uint8_t not_used, float value)
+void Sampler_SetADSR_Attack(uint8_t rec, float value)
 {
-    Sampler_SelectRec(not_used);
+    Sampler_SelectRec(rec);
     if (lastActiveRec != NULL)
     {
         float attackInv = pow(2.0f, value * 4) - 1.0f;
@@ -1148,9 +1156,9 @@ void Sampler_SetADSR_Attack(uint8_t not_used, float value)
     }
 }
 
-void Sampler_SetADSR_Decay(uint8_t not_used, float value)
+void Sampler_SetADSR_Decay(uint8_t rec, float value)
 {
-    Sampler_SelectRec(not_used);
+    Sampler_SelectRec(rec);
     if (lastActiveRec != NULL)
     {
         lastActiveRec->decay = pow(value, 10.0f / 44100.0f); /* value controls the level after one tenth of a second */
@@ -1158,9 +1166,9 @@ void Sampler_SetADSR_Decay(uint8_t not_used, float value)
     }
 }
 
-void Sampler_SetADSR_Release(uint8_t not_used, float value)
+void Sampler_SetADSR_Release(uint8_t rec, float value)
 {
-    Sampler_SelectRec(not_used);
+    Sampler_SelectRec(rec);
     if (lastActiveRec != NULL)
     {
         lastActiveRec->release = pow(value, 10.0f / 44100.0f); /* value controls the level after one tenth of a second */
@@ -1168,9 +1176,9 @@ void Sampler_SetADSR_Release(uint8_t not_used, float value)
     }
 }
 
-void Sampler_SetADSR_Sustain(uint8_t not_used, float value)
+void Sampler_SetADSR_Sustain(uint8_t rec, float value)
 {
-    Sampler_SelectRec(not_used);
+    Sampler_SelectRec(rec);
     if (lastActiveRec != NULL)
     {
         lastActiveRec->sustain = value;
