@@ -368,13 +368,16 @@ void Core0TaskSetup()
 
     Web_Setup();
     Web_AddSlider("Volume", App_SetOutputLevel, 255 * 35);
-    Web_AddSlider("Pitch", Sampler_SetPitch);
+    Web_AddSlider("Reverb Level", Reverb_SetLevel);
     Web_AddSlider("Touch Sensitivity", App_CapThresholds);
     Web_AddLine();
     Web_AddButton("RecordWait", App_RecordWait);
     Web_AddButton("LoopAll", Sampler_LoopAll);
     Web_AddButton("LoopRemove", Sampler_LoopRemove);
     Web_AddButton("Panic", Sampler_Panic);
+    Web_AddLine();
+    Web_AddRecSelector();
+    Web_AddSlider("Pitch", Sampler_SetPitch);
     Web_AddLine();
     Web_AddSlider("Attack", Sampler_SetADSR_Attack);
     Web_AddSlider("Decay", Sampler_SetADSR_Decay);
@@ -394,7 +397,6 @@ void Core0TaskSetup()
     Web_AddLine();
     Web_AddSlider("ModulationSpeed", Sampler_ModulationSpeed);
     Web_AddSlider("ModulationPitch", Sampler_ModulationPitch);
-    Web_AddSlider("Reverb Level", Reverb_SetLevel);
 }
 
 
@@ -416,26 +418,27 @@ bool isChanged(float first, float& second)
 void Update_Pots()
 {
     static float lastPots[4];
-    const float maxV = 3.2f;
+    const float maxV = 3.3f;
     
     for (int p = 0; p < 4; ++p) {
+        if (p == 2) continue;
         auto pot1 = ads.readADC_SingleEnded(p) * VPS;
 
         switch (p) {
             case 0:
                 if (isChanged(pot1, lastPots[p])) {
-                    Midi_PitchBend(0, mapfloat(pot1, 1.0, maxV, 0, 16384));
+                    Reverb_SetLevel(0, mapfloat(pot1, 1.2, maxV, 1.0f, 0.0f));
                 }
                 break;
             case 1:
                 if (isChanged(pot1, lastPots[p])) {
-                    Reverb_SetLevel(0, mapfloat(pot1, 1.0, maxV, 1.0f, 0.0f));
+                    Midi_PitchBend(0, mapfloat(pot1, 0.9, maxV, 0, 16384));
                 }
                 break;
             case 2:
-                if (isChanged(pot1, lastPots[p])) {
-                    //auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
-                }
+                //if (isChanged(pot1, lastPots[p])) {
+                //    auto val = mapfloat(pot1, 0, maxV, 0, 1.0f); 
+                //}
                 break;
             case 3:
                 if (isChanged(pot1, lastPots[p])) {
@@ -505,12 +508,14 @@ void Read_Touches()
         struct CapMap &map2 = mapping2[i];
         if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
             Sampler_NoteOn(map1.channel, map1.note, 1.0f);
+            Serial.printf("  Note group 1, pin %d, channel %d, note %d\r\n", map1.pin, map1.channel, map1.note);
         }
         if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
             Sampler_NoteOff(map1.channel, map1.note);
         }
         if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
             Sampler_NoteOn(map2.channel, map2.note, 1.0f);
+            Serial.printf("  Note group 2, pin %d, channel %d, note %d\r\n", map1.pin, map1.channel, map1.note);
         }
         if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
             Sampler_NoteOff(map2.channel, map2.note);

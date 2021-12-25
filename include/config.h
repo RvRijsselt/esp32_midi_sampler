@@ -106,7 +106,7 @@
  * move R66-70 to R60-R64 (0 Ohm resistors, you can also put a solder bridge)
  * place at R55-R59 a 1.8k resistor
  */
-#define AUDIO_KIT_BUTTON_ANALOG
+//#define AUDIO_KIT_BUTTON_ANALOG
 
 
 //#define DISPLAY_160x80_ENABLED /* activate this when a 160x80 ST7735 compatible display is connected */
