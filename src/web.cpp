@@ -5,11 +5,9 @@
 #include <ESPAsyncWebServer.h>
 #include <DNSServer.h>
 
-
 #include "wifi_credentials.h"
 
 //#define USE_AP
-#define USE_STATIC
 
 #ifdef USE_AP
 DNSServer dnsServer;
@@ -17,10 +15,10 @@ DNSServer dnsServer;
 AsyncWebServer server(80);
 String devices;
 
-FuncPtrCallback sliderCallbacks[20];
+#define MAX_DEVICES 30
+FuncPtrCallback sliderCallbacks[MAX_DEVICES];
 int nrOfDevices = 0;
 
-#ifndef USE_STATIC
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE HTML><html>
 <head>
@@ -75,85 +73,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
-#else
-const char index_html[] PROGMEM = R"rawliteral(
-<!DOCTYPE HTML><html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Cuculin Web Server</title>
-  <style>
-    html {font-family: Arial; display: inline-block; text-align: center;}
-    h2 {font-size: 2.3rem;}
-    p {font-size: 1.9rem;}
-    body {max-width: 400px; margin:0px auto; padding-bottom: 25px;}
-    .slider { -webkit-appearance: none; margin: 14px; width: 360px; height: 25px; background: #FFD65C; outline: none; -webkit-transition: .2s; transition: opacity .2s;}
-    .slider::-webkit-slider-thumb {-webkit-appearance: none; appearance: none; width: 35px; height: 35px; background: #003249; cursor: pointer;}
-    .slider::-moz-range-thumb { width: 35px; height: 35px; background: #003249; cursor: pointer; } 
-    hr { border: none; background-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgb(255, 0, 200), rgba(0, 0, 0, 0)); height: 9px; }
-  </style>
-</head>
-<body>
-  <h2>Cuculin Web Server</h2>
-<script>
- var tId;
- function updtRange(el) {
-     clearTimeout(tId);
-     func = function() {
-        document.getElementById("value-"+el.id).innerHTML = el.value;
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", "/slider?value="+el.value+"&id="+el.dataset.index, true);
-        xhr.send();
-     }
-     tId = setTimeout(func, 100);
- }
- function addSlider(name, id, maxValue) {
-    var div = document.createElement('div');
-    div.innerHTML = "<p>" + name + ": <span id='value-slider-" + id + "'></span></p>"
-                  + "<p><input type='range' oninput='updtRange(this)' id='slider-" + id + "' data-index='"+ id + "' min='0' max='" + maxValue + "' value='127' step='1' class='slider'></p>";
-    document.body.appendChild(div); 
- }
- function addBtn(name, id) {
-    var btn = document.createElement('button');
-    btn.innerHTML = name;
-    btn.addEventListener("click", function() {
-        var xhr = new XMLHttpRequest();
-        xhr.open("GET", "/slider?value=255&id="+id, true);
-        xhr.send();
-    });
-    document.body.appendChild(btn); 
- }
- function addHr() {
-    document.body.appendChild(document.createElement('hr')); 
- }
-addSlider("Volume", 0, 8925);
-addSlider("Pitch", 1, 255);
-addSlider("Touch Sensitivity", 2, 255);
-addHr();
-addBtn("RecordWait", 3);
-addBtn("LoopAll", 4);
-addBtn("LoopRemove", 5);
-addHr();
-addSlider("Attack", 6, 255);
-addSlider("Decay", 7, 255);
-addSlider("Sustain", 8, 255);
-addSlider("Release", 9, 255);
-addHr();
-addSlider("Delay Input Level", 10, 255);
-addSlider("Delay Feedback", 11, 255);
-addSlider("Delay Level", 12, 255);
-addSlider("Delay Length", 13, 255);
-addHr();
-addSlider("LoopStartC", 14, 255);
-addSlider("LoopStartF", 15, 255);
-addSlider("LoopEndC", 16, 255);
-addSlider("LoopEndF", 17, 255);
-addSlider("LoopMultiplier", 18, 255);
-addHr();
-</script>
-</body>
-</html>
-)rawliteral";
-#endif
 
 String processor(const String& var){
     if (var == "SCRIPT") {
@@ -178,6 +97,8 @@ public:
 
 void Web_Setup()
 {
+    devices.reserve(1000);
+
     Serial.print("Connecting to wifi...");
 
 #ifndef USE_AP
@@ -206,9 +127,6 @@ void Web_Setup()
     Serial.print("AP IP address: ");Serial.println(WiFi.softAPIP());
 #endif
 
-
-    devices.reserve(1000);
-
     // Set up mDNS responder:
     //if (MDNS.begin("cuculin")) {
     //    // Add service to MDNS-SD
@@ -227,11 +145,7 @@ void Web_Setup()
         Serial.printf("ESP.getMinFreeHeap() %d\n", ESP.getMinFreeHeap());
         Serial.printf("ESP.getHeapSize() %d\n", ESP.getHeapSize());
         Serial.printf("ESP.getMaxAllocHeap() %d\n", ESP.getMaxAllocHeap());
-#ifdef USE_STATIC
-        request->send_P(200, "text/html", index_html);
-#else
         request->send_P(200, "text/html", index_html, processor);
-#endif
         Serial.printf("Web connection %d done\n", req);
     });
 
@@ -264,6 +178,8 @@ void Web_ProcessLoop() {
 }
 
 void Web_AddButton(const char *name, FuncPtrCallback callback) {
+    if (nrOfDevices >= MAX_DEVICES) { Serial.println("Too many devices"); while(1){}}
+
     const int new_id = nrOfDevices;
     char outstr[70];
 
@@ -275,6 +191,8 @@ void Web_AddButton(const char *name, FuncPtrCallback callback) {
 }
 
 void Web_AddSlider(const char *name, FuncPtrCallback callback, int maxValue) {
+    if (nrOfDevices >= MAX_DEVICES) { Serial.println("Too many devices"); while(1){}}
+
     const int new_id = nrOfDevices;
     char outstr[90];
 

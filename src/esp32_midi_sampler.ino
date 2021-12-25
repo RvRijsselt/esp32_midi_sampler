@@ -130,6 +130,7 @@ uint16_t currtouched2 = 0;
 uint8_t lastCh = 1;
 
 const int na = 0;
+const int8_t lastRecToReplace = 4;
 
 /*
  * use this to activate auto loading
@@ -290,8 +291,10 @@ void setup()
     /* select sd card */
 #ifdef AUTO_LOAD_PATCHES_FROM_SD_MMC
     PatchManager_SetDestination(1, 1);
-    Sampler_LoadPatchFile("/samples/koekoek1.wav");
-    Sampler_LoadPatchFile("/samples/violin2.wav");
+    Sampler_LoadPatchFile("/samples/sinelong2.wav");
+    Sampler_LoadPatchFile("/samples/sineshort2.wav");
+    Sampler_LoadPatchFile("/samples/sleighbells.wav");
+    Sampler_LoadPatchFile("/samples/cuckoo.wav");
 #endif
 
     /* we need a second task for the terminal output */
@@ -344,9 +347,9 @@ void App_CapThresholds(uint8_t not_used, float value)
 }
 
 void App_RecordWait(uint8_t quarter, float value){
-    Sampler_SelectRec(2);
+    Sampler_SelectRec(lastRecToReplace);
     Sampler_RemoveActiveRecording(na, 1);
-    Sampler_RecordWait(0, value);
+    Sampler_RecordWait(na, value);
 }
 
 
@@ -371,6 +374,7 @@ void Core0TaskSetup()
     Web_AddButton("RecordWait", App_RecordWait);
     Web_AddButton("LoopAll", Sampler_LoopAll);
     Web_AddButton("LoopRemove", Sampler_LoopRemove);
+    Web_AddButton("Panic", Sampler_Panic);
     Web_AddLine();
     Web_AddSlider("Attack", Sampler_SetADSR_Attack);
     Web_AddSlider("Decay", Sampler_SetADSR_Decay);
@@ -388,9 +392,9 @@ void Core0TaskSetup()
     Web_AddSlider("LoopEndF", Sampler_LoopEndF);
     Web_AddSlider("LoopMultiplier", Sampler_SetLoopEndMultiplier);
     Web_AddLine();
-    //Web_AddSlider("ModulationSpeed", Sampler_ModulationSpeed);
-    //Web_AddSlider("ModulationPitch", Sampler_ModulationPitch);
-    //Web_AddSlider("Reverb Level", Reverb_SetLevel);
+    Web_AddSlider("ModulationSpeed", Sampler_ModulationSpeed);
+    Web_AddSlider("ModulationPitch", Sampler_ModulationPitch);
+    Web_AddSlider("Reverb Level", Reverb_SetLevel);
 }
 
 
@@ -440,7 +444,6 @@ void Update_Pots()
                     Status_ValueChangedFloat("volume 1", val);
                 }
                 break;
-
         }
     }
 
@@ -450,11 +453,47 @@ void Update_Pots()
     //Serial.println();
 }
 
+struct CapMap {
+    int8_t pin;
+    int8_t channel;
+    int8_t note;
+};
+
+const int noteA4 = 69;   // a = recorded speed
+const int noteC5 = 83;   // c 
+
+struct CapMap mapping1[] = {
+    { 0, 1, noteA4+0},
+    { 1, 1, noteA4+2},
+    { 2, 1, noteA4+3},
+    { 3, 1, noteA4+5},
+    { 4, 2, noteA4+0},
+    { 5, 2, noteA4+2},
+    { 6, 2, noteA4+3},
+    { 7, 2, noteA4+5},
+    { 8, 3, noteA4+0},
+    { 9, 3, noteA4+2},
+    { 10, 3, noteA4+3},
+    { 11, 3, noteA4+5},
+};
+
+struct CapMap mapping2[] = {
+    { 0, 4, noteA4},
+    { 1, 4, noteA4+2},
+    { 2, 4, noteA4+3},
+    { 3, 4, noteA4+5},
+    { 4, 4, noteA4+7},
+    { 5, 4, noteA4+8},
+    { 6, 4, noteA4+10},
+    { 7, 4, noteA4+12},
+    { 8, 4, noteA4+14},
+    { 9, 4, noteA4+15},
+    { 10, 4, noteA4+17},
+    { 11, 4, noteA4+19},
+};
+
 void Read_Touches()
 {
-    int base = 69;   // a = recorded speed
-    //int base = 83;   // c 
-
     App_CapThresholdsCore0();
 
     // Get the currently touched pads
@@ -462,17 +501,19 @@ void Read_Touches()
     currtouched2 = cap2.touched();
     
     for (uint8_t i=0; i<12; i++) {
+        struct CapMap &map1 = mapping1[i];
+        struct CapMap &map2 = mapping2[i];
         if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
-            Sampler_NoteOn(1, base+i*2, 1.0f);
+            Sampler_NoteOn(map1.channel, map1.note, 1.0f);
         }
         if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
-            Sampler_NoteOff(1, base+i*2);
+            Sampler_NoteOff(map1.channel, map1.note);
         }
         if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
-            Sampler_NoteOn(2, base+i*2, 1.0f);
+            Sampler_NoteOn(map2.channel, map2.note, 1.0f);
         }
         if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
-            Sampler_NoteOff(2, base+i*2);
+            Sampler_NoteOff(map2.channel, map2.note);
         }
     }
 
@@ -963,14 +1004,14 @@ void App_ButtonCb(uint8_t key, uint8_t down)
             {
             case 1:
                 delay(250); /* to avoid recording the noise of the button */
-                Sampler_SelectRec(2);
+                Sampler_SelectRec(lastRecToReplace);
                 Sampler_RemoveActiveRecording(na, 1);
-                Sampler_RecordWait(0, down);
+                Sampler_RecordWait(na, down);
                 break;
             case 2:
-                Sampler_SelectRec(2);
+                Sampler_SelectRec(lastRecToReplace);
                 Sampler_RemoveActiveRecording(na, 1);
-                Sampler_Record(0, down);
+                Sampler_Record(na, down);
                 break;
             case 3:
                 PatchManager_SetDestination(0, 0);
@@ -1013,9 +1054,9 @@ void App_ButtonCb(uint8_t key, uint8_t down)
                     PatchManager_SetDestination(0, 1);
                     break;
                 case 5:
-                    Sampler_SelectRec(2);
+                    Sampler_SelectRec(lastRecToReplace);
                     Sampler_RemoveActiveRecording(na, 1);
-                    Sampler_LoadPatch(0, 1);
+                    Sampler_LoadPatch(na, 1);
                     break;
                 }
             }
