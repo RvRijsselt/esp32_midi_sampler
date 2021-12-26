@@ -74,6 +74,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 	  "Sine long",
 	  "Sine short",
 	  "Sleighbells",
+      "Woodblocks",
 	  "Last recording",
 	];
     const sel = "<p>Selected recording</p><p><select id='recs' name='rec'>" + 

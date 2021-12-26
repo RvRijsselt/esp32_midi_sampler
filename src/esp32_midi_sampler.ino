@@ -130,7 +130,7 @@ uint16_t currtouched2 = 0;
 uint8_t lastCh = 1;
 
 const int na = 0;
-const int8_t lastRecToReplace = 4;
+const int8_t lastRecToReplace = 5;
 
 /*
  * use this to activate auto loading
@@ -294,6 +294,7 @@ void setup()
     Sampler_LoadPatchFile("/samples/sinelong2.wav");
     Sampler_LoadPatchFile("/samples/sineshort2.wav");
     Sampler_LoadPatchFile("/samples/sleighbells.wav");
+    Sampler_LoadPatchFile("/samples/woodblock.wav");
     Sampler_LoadPatchFile("/samples/cuckoo.wav");
 #endif
 
@@ -312,18 +313,23 @@ void setup()
 
     pinMode(PIN_RECORD_BTN, INPUT_PULLUP);
 
-    Sampler_SetADSR_Attack(1, 1.0f);
-    Sampler_SetADSR_Decay(1, 1.0f);
-    Sampler_SetADSR_Sustain(1, 1.0f);
-    Sampler_SetADSR_Release(1, 1.0f);
     Sampler_LoopAll(1, 1);
-    Sampler_LoopRemove(1, 1);
-    Sampler_SetADSR_Attack(2, 1.0f);
-    Sampler_SetADSR_Decay(2, 1.0f);
-    Sampler_SetADSR_Sustain(2, 1.0f);
-    Sampler_SetADSR_Release(2, 1.0f);
-    //Sampler_LoopAll(1, 1);
-    //Sampler_LoopRemove(1, 1);
+    Sampler_SetADSR_Attack(1, 0.0f);
+    Sampler_SetADSR_Decay(1, 0.25f);
+    Sampler_SetADSR_Sustain(1, 0.5f);
+    Sampler_SetADSR_Release(1, 0.2f);
+    Sampler_LoopStartC(1, 27/255.0f);
+    Sampler_LoopStartF(1, 77/255.0f);
+    Sampler_LoopEndC(1, 28/255.0f);
+    Sampler_LoopEndF(1, 0/255.0f);
+    Sampler_SetLoopEndMultiplier(1, 10/255.0f);
+
+    Sampler_LoopRemove(4, 1);
+    Sampler_SetADSR_Attack(4, 0.0f);
+    Sampler_SetADSR_Decay(4, 1.00f);
+    Sampler_SetADSR_Sustain(4, 1.0f);
+    Sampler_SetADSR_Release(4, 1.0f);
+
     App_SetOutputLevel(0, 2.5f);
     Status_Clear();
 }
@@ -464,35 +470,38 @@ struct CapMap {
 
 const int noteA4 = 69;   // a = recorded speed
 const int noteC5 = 83;   // c 
+const int baseC4 = 60;
 
+// Rechts
 struct CapMap mapping1[] = {
-    { 0, 1, noteA4+0},
-    { 1, 1, noteA4+2},
-    { 2, 1, noteA4+3},
-    { 3, 1, noteA4+5},
-    { 4, 2, noteA4+0},
-    { 5, 2, noteA4+2},
-    { 6, 2, noteA4+3},
-    { 7, 2, noteA4+5},
-    { 8, 3, noteA4+0},
-    { 9, 3, noteA4+2},
-    { 10, 3, noteA4+3},
-    { 11, 3, noteA4+5},
+    { 0, 4, noteA4},
+    { 1, 3, noteA4+3},
+    { 2, 1, 65},
+    { 3, 1, 64},
+    { 4, 1, 62},
+    { 5, 1, 72},
+    { 6, 1, 67},
+    { 7, 4, noteA4+5},
+    { 8, 1, 60},
+    { 9, 3, noteA4+0},
+    { 10, 1, 69},
+    { 11, 1, 71},
 };
 
+// Links
 struct CapMap mapping2[] = {
-    { 0, 4, noteA4},
-    { 1, 4, noteA4+2},
-    { 2, 4, noteA4+3},
-    { 3, 4, noteA4+5},
-    { 4, 4, noteA4+7},
-    { 5, 4, noteA4+8},
-    { 6, 4, noteA4+10},
-    { 7, 4, noteA4+12},
-    { 8, 4, noteA4+14},
-    { 9, 4, noteA4+15},
-    { 10, 4, noteA4+17},
-    { 11, 4, noteA4+19},
+    { 0, lastRecToReplace, noteA4},
+    { 1, lastRecToReplace, noteA4+2},
+    { 2, lastRecToReplace, noteA4+3},
+    { 3, lastRecToReplace, noteA4+5},
+    { 4, lastRecToReplace, noteA4+7},
+    { 5, lastRecToReplace, noteA4+8},
+    { 6, lastRecToReplace, noteA4+10},
+    { 7, lastRecToReplace, noteA4+12},
+    { 8, lastRecToReplace, noteA4+14},
+    { 9, lastRecToReplace, noteA4+15},
+    { 10, lastRecToReplace, noteA4+17},
+    { 11, lastRecToReplace, noteA4+19},
 };
 
 void Read_Touches()
