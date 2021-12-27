@@ -175,20 +175,22 @@ float *VuMeter_GetPtr(uint8_t index);
 void setup()
 {
     // put your setup code here, to run once:
+#ifdef BLINK_LED_PIN
+    Blink_Setup();
+#endif
+
     delay(500);
 
     Serial.begin(115200);
-
+    Serial.println();
+    Serial.printf("Total heap: %d\r\n", ESP.getHeapSize());
+    Serial.printf("Free heap: %d\r\n", ESP.getFreeHeap());
+    Serial.printf("Total PSRAM: %d\r\n", ESP.getPsramSize());
+    Serial.printf("Free PSRAM: %d\r\n\n", ESP.getFreePsram());
+    Serial.printf("Firmware started successfully\n");
     Serial.println();
 
-    Serial.printf("Total heap: %d\n", ESP.getHeapSize());
-    Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
-    Serial.printf("Total PSRAM: %d\n", ESP.getPsramSize());
-    Serial.printf("Free PSRAM: %d\n\n", ESP.getFreePsram());
-
-    Serial.printf("Firmware started successfully\n");
-
-    Wire.setClock(100000);
+    Wire.setClock(200000);
     ScanI2C();
 
     if (!ads.begin(ADS1X15_ADDRESS+1)) {
@@ -216,9 +218,6 @@ void setup()
 
     click_supp_gain = 0.0f;
 
-#ifdef BLINK_LED_PIN
-    Blink_Setup();
-#endif
     Status_Setup();
 
 #ifdef ESP32_AUDIO_KIT
@@ -265,17 +264,14 @@ void setup()
 
     Sampler_Init();
 
-    Serial.printf("ESP.getFreeHeap() %d\n", ESP.getFreeHeap());
-    Serial.printf("ESP.getMinFreeHeap() %d\n", ESP.getMinFreeHeap());
-    Serial.printf("ESP.getHeapSize() %d\n", ESP.getHeapSize());
-    Serial.printf("ESP.getMaxAllocHeap() %d\n", ESP.getMaxAllocHeap());
-
-    Serial.printf("Total heap: %d\n", ESP.getHeapSize());
-    Serial.printf("Free heap: %d\n", ESP.getFreeHeap());
+    Serial.printf("ESP.getFreeHeap() %d\r\n", ESP.getFreeHeap());
+    Serial.printf("ESP.getMinFreeHeap() %d\r\n", ESP.getMinFreeHeap());
+    Serial.printf("ESP.getHeapSize() %d\r\n", ESP.getHeapSize());
+    Serial.printf("ESP.getMaxAllocHeap() %d\r\n", ESP.getMaxAllocHeap());
 
     /* PSRAM will be fully used by the looper */
-    Serial.printf("Total PSRAM: %d\n", ESP.getPsramSize());
-    Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
+    Serial.printf("Total PSRAM: %d\r\n", ESP.getPsramSize());
+    Serial.printf("Free PSRAM: %d\r\n", ESP.getFreePsram());
 
     vuInL = VuMeter_GetPtr(0);
     vuInR = VuMeter_GetPtr(1);
@@ -295,7 +291,7 @@ void setup()
     Sampler_LoadPatchFile("/samples/sineshort2.wav");
     Sampler_LoadPatchFile("/samples/sleighbells.wav");
     Sampler_LoadPatchFile("/samples/woodblock.wav");
-    Sampler_LoadPatchFile("/samples/cuckoo.wav");
+    Sampler_LoadPatchFile("/samples/cuckoo1.wav");
 #endif
 
     /* we need a second task for the terminal output */
@@ -322,13 +318,30 @@ void setup()
     Sampler_LoopStartF(1, 77/255.0f);
     Sampler_LoopEndC(1, 28/255.0f);
     Sampler_LoopEndF(1, 0/255.0f);
-    Sampler_SetLoopEndMultiplier(1, 10/255.0f);
+    Sampler_SetLoopEndMultiplier(1, 0/255.0f);
+
+    Sampler_LoopRemove(3, 1);
+    Sampler_SetADSR_Attack(3, 0.0f);
+    Sampler_SetADSR_Decay(3, 1.00f);
+    Sampler_SetADSR_Sustain(3, 1.0f);
+    Sampler_SetADSR_Release(3, 1.0f);
 
     Sampler_LoopRemove(4, 1);
     Sampler_SetADSR_Attack(4, 0.0f);
     Sampler_SetADSR_Decay(4, 1.00f);
     Sampler_SetADSR_Sustain(4, 1.0f);
     Sampler_SetADSR_Release(4, 1.0f);
+
+    Sampler_LoopAll(5, 1);
+    Sampler_SetADSR_Attack(5, 0.0f);
+    Sampler_SetADSR_Decay(5, 128/255.0f);
+    Sampler_SetADSR_Sustain(5, 158/255.0f);
+    Sampler_SetADSR_Release(5, 255/255.0f);
+    Sampler_LoopStartC(5, 26/255.0f);
+    Sampler_LoopStartF(5, 116/255.0f);
+    Sampler_LoopEndC(5, 255/255.0f);
+    Sampler_LoopEndF(5, 255/255.0f);
+    Sampler_SetLoopEndMultiplier(5, 13/255.0f);
 
     App_SetOutputLevel(0, 2.5f);
     Status_Clear();
@@ -433,12 +446,12 @@ void Update_Pots()
         switch (p) {
             case 0:
                 if (isChanged(pot1, lastPots[p])) {
-                    Reverb_SetLevel(0, mapfloat(pot1, 1.2, maxV, 1.0f, 0.0f));
+                    Reverb_SetLevel(0, mapfloat(pot1, 1.3, maxV, 1.0f, 0.0f));
                 }
                 break;
             case 1:
                 if (isChanged(pot1, lastPots[p])) {
-                    Midi_PitchBend(0, mapfloat(pot1, 0.9, maxV, 0, 16384));
+                    Midi_PitchBend(0, mapfloat(pot1, 1.0, maxV, 0, 16384));
                 }
                 break;
             case 2:
@@ -448,7 +461,7 @@ void Update_Pots()
                 break;
             case 3:
                 if (isChanged(pot1, lastPots[p])) {
-                    auto val = mapfloat(pot1, 0.1, maxV, 0.1f, 30.0f); 
+                    auto val = mapfloat(pot1, 0.0, maxV, 0.01f, 20.0f); 
                     App_SetOutputLevel(1, val);
                     Status_ValueChangedFloat("volume 1", val);
                 }
@@ -456,10 +469,10 @@ void Update_Pots()
         }
     }
 
-    //for (int p = 0; p < 4; ++p) {
-    //    Serial.printf("%.3f, ", lastPots[p]);
-    //}
-    //Serial.println();
+    for (int p = 0; p < 4; ++p) {
+        Serial.printf("%.3f, ", lastPots[p]);
+    }
+    Serial.println();
 }
 
 struct CapMap {
@@ -468,40 +481,36 @@ struct CapMap {
     int8_t note;
 };
 
-const int noteA4 = 69;   // a = recorded speed
-const int noteC5 = 83;   // c 
-const int baseC4 = 60;
-
 // Rechts
 struct CapMap mapping1[] = {
-    { 0, 4, noteA4},
-    { 1, 3, noteA4+3},
-    { 2, 1, 65},
-    { 3, 1, 64},
-    { 4, 1, 62},
-    { 5, 1, 72},
-    { 6, 1, 67},
-    { 7, 4, noteA4+5},
-    { 8, 1, 60},
-    { 9, 3, noteA4+0},
-    { 10, 1, 69},
-    { 11, 1, 71},
+    { 0, 4, 69-12},    // A4, block
+    { 1, 3, 72-12},    // C5, bells
+    { 2, 1, 65-12},    // F4
+    { 3, 1, 64-12},    // E4
+    { 4, 1, 62-12},    // D4
+    { 5, 1, 72-12},    // C5
+    { 6, 1, 67-12},    // G4
+    { 7, 4, 74-12},    // D5, block
+    { 8, 1, 60-12},    // C4
+    { 9, 3, 69-12},    // A4, bells
+    { 10, 1, 69-12},   // A4
+    { 11, 1, 71-12},   // B4
 };
 
 // Links
 struct CapMap mapping2[] = {
-    { 0, lastRecToReplace, noteA4},
-    { 1, lastRecToReplace, noteA4+2},
-    { 2, lastRecToReplace, noteA4+3},
-    { 3, lastRecToReplace, noteA4+5},
-    { 4, lastRecToReplace, noteA4+7},
-    { 5, lastRecToReplace, noteA4+8},
-    { 6, lastRecToReplace, noteA4+10},
-    { 7, lastRecToReplace, noteA4+12},
-    { 8, lastRecToReplace, noteA4+14},
-    { 9, lastRecToReplace, noteA4+15},
-    { 10, lastRecToReplace, noteA4+17},
-    { 11, lastRecToReplace, noteA4+19},
+    { 0, lastRecToReplace, 59},     // B3
+    { 1, lastRecToReplace, 71},     // B4
+    { 2, lastRecToReplace, 83},     // B5
+    { 3, lastRecToReplace, 57},     // A3
+    { 4, lastRecToReplace, 69},     // A4
+    { 5, lastRecToReplace, 81},     // A5
+    { 6, lastRecToReplace, 50},     // D3
+    { 7, lastRecToReplace, 62},     // D4
+    { 8, lastRecToReplace, 74},     // D5
+    { 9, lastRecToReplace, 55-12},  // G2
+    { 10, lastRecToReplace, 67-12}, // G3
+    { 11, lastRecToReplace, 79-12}, // G4
 };
 
 void Read_Touches()
@@ -524,7 +533,7 @@ void Read_Touches()
         }
         if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
             Sampler_NoteOn(map2.channel, map2.note, 1.0f);
-            Serial.printf("  Note group 2, pin %d, channel %d, note %d\r\n", map1.pin, map1.channel, map1.note);
+            Serial.printf("  Note group 2, pin %d, channel %d, note %d\r\n", map2.pin, map2.channel, map2.note);
         }
         if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
             Sampler_NoteOff(map2.channel, map2.note);

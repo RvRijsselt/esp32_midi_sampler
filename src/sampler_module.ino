@@ -52,7 +52,9 @@
 
 #define SAMPLE_MAX_RECORDS  32
 
-#define NOTE_NORMAL 69 /* this is an a -> playback a with original recorded speed */
+// srry for messing up the math, need to dail it down a little
+#define NOTE_NORMAL 57
+//69-12 /* this is an a -> playback a with original recorded speed */
 
 #define SAMPLE_MAX_PLAYERS  8 /* max polyphony, higher values 'may' not be processed in time */
 

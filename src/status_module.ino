@@ -77,7 +77,7 @@ void Status_Clear(void)
 {
     // clear display
     //Serial.printf("\e[2J");
-    for (int i = 0; i < 30; ++i)
+    for (int i = 0; i < 40; ++i)
         Serial.printf("\r\n");
 }
 
