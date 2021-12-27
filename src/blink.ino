@@ -43,6 +43,7 @@
 void Blink_Setup(void)
 {
     pinMode(BLINK_LED_PIN, OUTPUT);
+    digitalWrite(BLINK_LED_PIN, HIGH);
 }
 
 
