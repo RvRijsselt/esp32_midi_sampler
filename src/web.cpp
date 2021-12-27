@@ -8,6 +8,7 @@
 #include "wifi_credentials.h"
 
 //#define USE_AP
+#define USE_STATIC_IP
 
 #ifdef USE_AP
 DNSServer dnsServer;
@@ -120,15 +121,22 @@ void Web_Setup()
     Serial.print("Connecting to wifi...");
 
 #ifndef USE_AP
-    WiFi.mode(WIFI_STA);
-    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
     WiFi.setHostname("cuculin");
+    WiFi.mode(WIFI_STA);
+#ifdef USE_STATIC_IP
+    IPAddress local_IP(192, 168, 2, 222);
+    IPAddress gateway(192, 168, 2, 254);
+    IPAddress subnet(255, 255, 255, 0);
+    WiFi.config(local_IP, gateway, subnet, INADDR_NONE, INADDR_NONE);
+#else
+    WiFi.config(INADDR_NONE, INADDR_NONE, INADDR_NONE, INADDR_NONE);
+#endif
     WiFi.setAutoConnect(true);
     WiFi.setAutoReconnect(true);
     WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-    while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-    }
+    //while (WiFi.status() != WL_CONNECTED) {
+    //    delay(500);
+    //}
     Serial.println(" done.");
     Serial.print("IP address: ");
     Serial.println(WiFi.localIP());
@@ -175,7 +183,7 @@ void Web_Setup()
             auto value = request->getParam("value")->value().toInt() / 256.0f;
             auto index = request->getParam("id")->value().toInt();
             if (index >= 0 && index < nrOfDevices) {
-                sliderCallbacks[index](rec % 4 + 1, value);
+                sliderCallbacks[index](rec % 5 + 1, value);
             }
         }
         request->send(200, "text/plain", "OK");
