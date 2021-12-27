@@ -354,7 +354,7 @@ void App_CapThresholdsCore0()
     if (cap_threshold != last_threshold) {
         last_threshold = cap_threshold;
 
-        Serial.printf("Cap thresholds: %d %d", cap_threshold+5, cap_threshold);
+        //Serial.printf("Cap thresholds: %d %d", cap_threshold+5, cap_threshold);
         cap.setThresholds(cap_threshold + 5, cap_threshold);
         cap2.setThresholds(cap_threshold + 5, cap_threshold);
     }
@@ -469,10 +469,10 @@ void Update_Pots()
         }
     }
 
-    for (int p = 0; p < 4; ++p) {
-        Serial.printf("%.3f, ", lastPots[p]);
-    }
-    Serial.println();
+    //for (int p = 0; p < 4; ++p) {
+    //    Serial.printf("%.3f, ", lastPots[p]);
+    //}
+    //Serial.println();
 }
 
 struct CapMap {
@@ -526,14 +526,14 @@ void Read_Touches()
         struct CapMap &map2 = mapping2[i];
         if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
             Sampler_NoteOn(map1.channel, map1.note, 1.0f);
-            Serial.printf("  Note group 1, pin %d, channel %d, note %d\r\n", map1.pin, map1.channel, map1.note);
+            //Serial.printf("  Note group 1, pin %d, channel %d, note %d\r\n", map1.pin, map1.channel, map1.note);
         }
         if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
             Sampler_NoteOff(map1.channel, map1.note);
         }
         if ((currtouched2 & _BV(i)) && !(lasttouched2 & _BV(i)) ) {
             Sampler_NoteOn(map2.channel, map2.note, 1.0f);
-            Serial.printf("  Note group 2, pin %d, channel %d, note %d\r\n", map2.pin, map2.channel, map2.note);
+            //Serial.printf("  Note group 2, pin %d, channel %d, note %d\r\n", map2.pin, map2.channel, map2.note);
         }
         if (!(currtouched2 & _BV(i)) && (lasttouched2 & _BV(i)) ) {
             Sampler_NoteOff(map2.channel, map2.note);
@@ -550,7 +550,7 @@ void CheckRecordButton() {
 
     if (state != lastState) {
         if (state == LOW) {
-            Serial.printf("Pin 2 low");
+            //Serial.printf("Pin 2 low");
             App_RecordWait(0, 1);
         }
         lastState = state;

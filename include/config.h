@@ -59,7 +59,7 @@
 #define SAMPLE_BUFFER_SIZE 64
 
 /* enable the following to get a vt100 compatible output which can be displayed for example with teraterm pro */
-#define VT100_ENABLED
+//#define VT100_ENABLED
 
 /* following can be activated to output the key function in the status output */
 #define STATUS_SHOW_BUTTON_TEXT
