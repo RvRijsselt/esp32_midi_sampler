@@ -2,7 +2,7 @@
 
 Forked from [marcel-licence/esp32_midi_sampler](https://github.com/marcel-licence/esp32_midi_sampler) and then turned into a - uhm - cuculin 'musical' instrument.
 
-![The Cuculin](images\IMG_20211227_223224_3.jpg)
+![The Cuculin](images/IMG_20211227_223224_3.jpg)
 
 ## Background and idea
 The cuculin is a felt electronic synthesizer. The name comes from the little cuckoo bird which is peeking out of the centre (and the fact that we preloaded cuckoo sound wave files). The left hand side plays a preloaded wave file which can be replaced by recording a new sound. The right side plays a standard tone ladder, two hi-hat like sounds and a Christmas bells rythm. The two necks of the instrument can bend upwards to introduce a pitch bend or reverb effect.
@@ -18,7 +18,7 @@ This was created as a [Sinterklaas](https://en.wikipedia.org/wiki/Sinterklaas) s
 - [Sinterklaas poem](Poem.md)
 - The Cuculin hardware.
 
-![](images\IMG_20211225_230823_4.jpg)
+![](images/IMG_20211225_230823_4.jpg)
 
 
 ---
