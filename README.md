@@ -1,4 +1,29 @@
-# esp32_midi_sampler
+# esp32_midi_sampler as a Saint Nicholas surprise
+
+Forked from [marcel-licence/esp32_midi_sampler](https://github.com/marcel-licence/esp32_midi_sampler) and then turned into a - uhm - cuculin 'musical' instrument.
+
+![The Cuculin](images\IMG_20211227_223224_3.jpg)
+
+## Background and idea
+The cuculin is a felt electronic synthesizer. The name comes from the little cuckoo bird which is peeking out of the centre (and the fact that we preloaded cuckoo sound wave files). The left hand side plays a preloaded wave file which can be replaced by recording a new sound. The right side plays a standard tone ladder, two hi-hat like sounds and a Christmas bells rythm. The two necks of the instrument can bend upwards to introduce a pitch bend or reverb effect.
+
+This was created as a [Sinterklaas](https://en.wikipedia.org/wiki/Sinterklaas) surprise for someone who crafts (real) violins and who is married to a felt textile artist. 
+
+## Modifications from original midi sampler
+- Changed to Platform.io IDE.
+- Used 2x MPR-121 to play the midi notes using 24 touch sensors. Mimicking the base notes of a violin in 3 different octaves.
+- Used 1x ADS-1115 to read one pot meter for volume control and two flex sensors to pitch bend and set reverb level.
+- Added webserver to control the sampler's knobs and sliders. Ran into a lot of memory issues with this one. Could not get soft-AP to work with a captive portal. So had to revert to a static IP on a hardcoded WIFI network :( 
+- Recording is done via a separate button, always overwriting the last sample. Note that there is a nasty bug when starting to record during playback.
+- [Sinterklaas poem](Poem.md)
+- The Cuculin hardware.
+
+![](images\IMG_20211225_230823_4.jpg)
+
+
+---
+## Original readme
+
 ESP32 Audio Kit Sampling MIDI Module - A little DIY Arduino based audio/synthesizer project
 
 - video presentation of the initial state of this project https://youtu.be/7uSobNW7_A4 
